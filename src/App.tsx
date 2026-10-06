@@ -1,10 +1,11 @@
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import {
   Activity,
   ArrowDownRight,
   ArrowRight,
   ArrowUpRight,
   BarChart3,
+  Building2,
   BookOpen,
   Check,
   ChevronLeft,
@@ -49,6 +50,8 @@ import {
 import { FlowDiagram, SamarMap, SectionHeading } from "./Visuals";
 import Reservoir from "./Reservoir";
 import CityMaquette from "./CityMaquette";
+import DevelopmentPlanner from "./DevelopmentPlanner";
+import { validDevelopment, type Development } from "./engine/developments";
 const pilots = municipalities.filter((m) => m.activeInSimulation);
 type ExploreLayout = "split" | "map-expanded" | "planning-expanded";
 const number = (v: number) =>
@@ -108,7 +111,7 @@ function readSaved(): Scenario[] {
             (!p.allocationShares || p.allocationShares.length === 4)
           );
         }),
-    ).map((s) => ({...s, inputs: Object.fromEntries(pilots.map((m) => [m.id, {...s.inputs[m.id], nrw: s.inputs[m.id].nrw ?? 28, reserve: s.inputs[m.id].reserve ?? 22, allocationShares: s.inputs[m.id].allocationShares || [25,25,25,25]}]))}));
+    ).map((s) => ({...s, inputs: Object.fromEntries(pilots.map((m) => [m.id, {...s.inputs[m.id], nrw: s.inputs[m.id].nrw ?? 28, reserve: s.inputs[m.id].reserve ?? 22, allocationShares: s.inputs[m.id].allocationShares || [25,25,25,25]}])), developments:Array.isArray(s.developments)?s.developments.filter(validDevelopment):[]}));
   } catch {
     return [];
   }
@@ -213,8 +216,11 @@ export default function App() {
     [exploreLayout, setExploreLayout] = useState<ExploreLayout>("split"),
     [waterBalanceOpen, setWaterBalanceOpen] = useState(false),
     [nrwSimulatorOpen, setNrwSimulatorOpen] = useState(false),
+    [plannerOpen, setPlannerOpen] = useState(false),
+    [plannerSelectedId, setPlannerSelectedId] = useState<string | null>(null),
     [daloyOpen, setDaloyOpen] = useState(false),
     [daloyQuestion, setDaloyQuestion] = useState("");
+  const closePlanner=useCallback(()=>setPlannerOpen(false),[]);
   useEffect(() => {
     document.body.dataset.appearance = appearance;
     try { localStorage.setItem("water-economics-appearance-v1", appearance); } catch { /* Appearance still applies for this session. */ }
@@ -258,9 +264,10 @@ export default function App() {
   const spatialMunicipality = scope === "combined" ? pilots[2] : selected[0];
   const spatialResult = simulate(scenario, spatialMunicipality.id);
   const spatialStorage = spatialResult.results[0];
+  const spatialDevelopments = (scenario.developments || []).filter(item=>item.municipalityId===spatialMunicipality.id);
   const spatialInput = scenario.inputs[spatialMunicipality.id];
   const nrwBaseline = baselineScenario.inputs[spatialMunicipality.id].nrw;
-  const spatialAtBaselineNrw = simulateMunicipality(spatialMunicipality, {...spatialInput, nrw: nrwBaseline});
+  const spatialAtBaselineNrw = simulateMunicipality(spatialMunicipality, {...spatialInput, nrw: nrwBaseline}, spatialDevelopments);
   const grossForNiw = spatialResult.supply + spatialMunicipality.opening;
   const baselineSourceLoss = grossForNiw * nrwBaseline / 100;
   const scenarioSourceLoss = grossForNiw * spatialInput.nrw / 100;
@@ -275,7 +282,7 @@ export default function App() {
   const waterStress = spatialResult.shortage <= .05 ? "Low" : spatialResult.shortage / Math.max(.1, spatialResult.demand) >= .2 ? "High" : "Moderate";
   const affordability = spatialResult.burden <= 3 ? "Low" : spatialResult.burden <= 5 ? "Moderate" : "High";
   const profileStats = [
-    ["Households", number(spatialMunicipality.households), "DEMO INPUT"],
+    ["Modeled households", number(spatialResult.households), spatialResult.households === spatialMunicipality.households ? "DEMO INPUT" : "INCLUDES PLACED HOMES"],
     ["Baseline demand", `${number(baselineDemand)} ML/day`, "ESTIMATED"],
     ["Supply capacity", `${number(spatialResult.supply)} ML/day`, "SIMULATED · GROSS"],
     ["Allocable water", `${number(spatialResult.allocable)} ML/day`, "AFTER LOSSES & RESERVE"],
@@ -310,7 +317,7 @@ export default function App() {
   const spatialSectorDetails: Record<string, { summary: string; facts: Array<[string, string]> }> = Object.fromEntries(spatialDemands.map((item) => [item.name, {
     summary: `${item.name} in the illustrative ${spatialMunicipality.name} model. The 3D buildings use the current allocation result.`,
     facts: [
-      ...(item.name === "Households" ? [["Estimated households", number(spatialMunicipality.households)] as [string, string]] : []),
+      ...(item.name === "Households" ? [["Modeled households", number(spatialResult.households)] as [string, string]] : []),
       ["Estimated demand", `${number(item.value)} ML/day`],
       ["Water allocated", `${number(item.allocation)} ML/day`],
       ["Demand unmet", `${number(Math.max(0, item.value - item.allocation))} ML/day`],
@@ -365,6 +372,7 @@ export default function App() {
           : s,
       ),
     );
+  const updateDevelopments = (next:Development[])=>setScenarios(list=>list.map(item=>item.id===scenario.id?{...item,developments:[...(item.developments || []).filter(development=>development.municipalityId!==spatialMunicipality.id),...next]}:item));
   const inform = (message: string) => {
     setNotice(message);
     window.setTimeout(() => setNotice(""), 4000);
@@ -404,6 +412,7 @@ export default function App() {
         "Municipality",
         "Supply ML/day",
         "Demand ML/day",
+        "Development demand ML/day",
         "Allocation ML/day",
         "Allocable water ML/day",
         "NRW % (demo assumption)",
@@ -417,6 +426,7 @@ export default function App() {
         r.name,
         r.supply,
         r.demand,
+        r.developmentDemand,
         r.allocation,
         r.allocable,
         r.nrw * 100,
@@ -1094,6 +1104,7 @@ export default function App() {
                     </div>}
                   </div>
                   <div className="planning-model-actions">
+                    <button className="planner-launch" type="button" onClick={()=>{setPlannerSelectedId(null);setPlannerOpen(true);}}><Building2 size={15}/> Development planner{spatialDevelopments.length>0?<span>{spatialDevelopments.length}</span>:null}</button>
                     <span className="planning-model-status"><span />Interactive model</span>
                     <button className="icon-button" type="button" aria-label={exploreLayout === "planning-expanded" ? "Return to split view" : "Expand 3D planning view"} onClick={() => setExploreLayout(exploreLayout === "planning-expanded" ? "split" : "planning-expanded")}>
                       {exploreLayout === "planning-expanded" ? <Minimize2 size={16}/> : <Maximize2 size={16}/>}
@@ -1107,6 +1118,8 @@ export default function App() {
                     drought={spatialInput.drought}
                     nrw={spatialInput.nrw}
                     sectors={spatialDemands}
+                    developments={spatialDevelopments}
+                    onSelectDevelopment={id=>{setPlannerSelectedId(id);setPlannerOpen(true);}}
                     focusedSector={focusedSpatialSector}
                     onSectorHover={setHoverSpatialSector}
                     onSelectSector={(name) => {
@@ -1587,6 +1600,7 @@ export default function App() {
             {daloyQuestion === daloyQuestions[1] && (unmetSectors.length ? <><strong>{unmetSectors.length} {unmetSectors.length === 1 ? "sector has" : "sectors have"} unmet demand:</strong><dl>{unmetSectors.map((item) => <div key={item.name}><dt>{item.name}</dt><dd>{number(item.unmet)} ML/day · {Math.round(item.coverage*100)}% covered</dd></div>)}</dl>{largestUnmet?.name === "Households" && <p>About {number(spatialResult.affected)} households are equivalent to the current household coverage shortfall.</p>}</> : <><strong>All current sector demand is covered.</strong><p>No unmet demand is calculated for this scenario.</p></>)}
             {daloyQuestion === daloyQuestions[2] && (spatialResult.shortage > .05 ? <><strong>{number(spatialResult.allocable)} ML/day is allocable against {number(spatialResult.demand)} ML/day required.</strong><p>The model applies {number(spatialInput.nrw)}% non-revenue water loss and protects {number(spatialInput.reserve)}% of reservoir capacity. Current source inflow is {number(spatialResult.supply)} ML/day; the remaining {number(spatialResult.shortage)} ML/day is unmet.</p>{spatialInput.allocation < 100 && <p>The allocation target is also set to {number(spatialInput.allocation)}%.</p>}</> : <><strong>There is no current supply shortage.</strong><p>Allocable water covers the present required demand. Any changes to source output, losses, reserve, or sector needs update this reading.</p></>)}
             {daloyQuestion === daloyQuestions[3] && <><strong>Change one assumption at a time to see what moves the balance.</strong><p>Try reducing NRW, increasing source output, or shifting a distribution channel. Watch allocable water, unmet demand, and the highlighted sector update together.</p><button className="daloy-action" onClick={() => {setControlTab("Sources");setControlsOpen(true);setDaloyOpen(false);}}>Open water controls <ArrowRight size={14}/></button></>}
+            {spatialResult.developmentCount>0 && <p>{spatialResult.developmentCount} {spatialResult.developmentCount===1?"included establishment adds":"included establishments add"} {number(spatialResult.developmentDemand)} ML/day to {spatialMunicipality.name}'s sector demand. These values come from the profiles set in the Development planner.</p>}
             <small>Computed directly from the current scenario inputs; no extra AI estimate.</small>
           </div>}
         </section>}
@@ -1598,6 +1612,7 @@ export default function App() {
           {notice}
         </div>
       )}
+      {plannerOpen && <DevelopmentPlanner municipality={spatialMunicipality} scenario={scenario} result={spatialResult} developments={spatialDevelopments} initialDevelopmentId={plannerSelectedId} onChange={updateDevelopments} onClose={closePlanner} onSaveScenario={()=>{closePlanner();openSave();}}/>}
       {modal && (
         <div className="modal-backdrop" onClick={() => setModal(false)}>
           <div

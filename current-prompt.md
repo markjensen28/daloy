@@ -1,299 +1,816 @@
-Yes. Your sketch makes sense, and I think it gives the demographics view a much clearer purpose.
+Yes. The cleanest way to approach this is to treat every establishment as a **configurable demand object** that can be placed into a municipality and then plugged into the water simulation.
 
-The important distinction is:
+The core idea is:
 
-> **Demographics tells you who and what exists in the municipality and how much water they need.**  
-> **Reservoir tells you how much water is physically available.**  
-> **3D Planning shows who is actually receiving it.**
+> **Place establishment → calculate its water demand → add that demand to the municipality → recalculate supply, reserve, allocation, risk, and economics → update every visualization.**
 
-Those three should be reading and modifying the same municipality state.
+So the Development Planner is not just a 3D decoration system. It becomes another input source for your entire Water Economics Platform.
 
-For the expanded demographics/map view, I would build it around this structure:
+A good overall flow is:
 
 ```text
-┌──────────────────────────────────────────────────────────────────────┐
-│ PINABACDAO                                      DEMOGRAPHICS / MAP   │
-│ Water Stress HIGH · Affordability MODERATE · NRW 28% · Pressure 92% │
-├────────────────────────────────┬─────────────────────────────────────┤
-│                                │ MUNICIPAL PROFILE                   │
-│                                │                                     │
-│                                │  6,840             10.0 ML/day     │
-│         SAMAR / LGU MAP        │  Households        Baseline demand │
-│                                │                                     │
-│      selected municipality     │  13.2 ML/day       8.9 ML/day      │
-│          emphasized            │  Supply capacity   Allocable water │
-│                                │                                     │
-│                                │ ──────────────────────────────────  │
-│                                │ SECTOR INVENTORY                    │
-│                                │                                     │
-│                                │ Households              6,840       │
-│                                │ Schools                    18       │
-│                                │ Hospitals / clinics         4       │
-│                                │ Government facilities      11       │
-│                                │ Commercial establishments  ___      │
-│                                │ Other public services      ___      │
-│                                │                                     │
-├────────────────────────────────┴─────────────────────────────────────┤
-│ WATER BALANCE ANALYSIS                                   Expand ↓    │
-│ Required demand   Unmet demand   Supply vs demand   Reserve          │
-└──────────────────────────────────────────────────────────────────────┘
+Choose municipality
+      ↓
+Open Development Planner
+      ↓
+Choose establishment from Asset Library
+      ↓
+Configure establishment
+      ↓
+Drag/place 3D model on planning terrain
+      ↓
+Calculate water requirement
+      ↓
+Add demand to municipality
+      ↓
+Check if supply can meet demand
+      ↓
+Recalculate allocations + reserve + risk
+      ↓
+Update reservoir, flows, charts, economics
+      ↓
+Save as scenario
 ```
 
-The main profile should stay very compact. I would avoid turning those five main values into five normal dashboard cards. Use large numbers separated by typography and thin dividers instead.
+The first thing I would build is the **Asset Library**.
 
-The four primary water numbers should also have very specific meanings:
-
-- **Baseline demand** — how much water the municipality normally requires.
-- **Supply capacity** — how much its sources/system can presently provide.
-- **Allocable water** — the amount actually available for sector allocation after losses and protected reserve.
-- **Unmet demand** — not a static demographic number; it is calculated from the current simulation.
-
-That makes `allocableWater` particularly important. Based on the model you already defined, gross supply is reduced by NRW and reserve before becoming usable/allocable water. :chatgpt-content-reference{index="0"}
-
-So conceptually:
-
-```text
-Gross/current supply
-       ↓
-   subtract NRW
-       ↓
- subtract reserve
-       ↓
-ALLOCABLE WATER
-       ↓
-sector allocations
-```
-
-That number connects demographics directly to the reservoir and planning model.
-
-For sectors, your idea of showing the **actual number of facilities** is much better than simply showing percentages. So rather than:
-
-```text
-Schools — 4%
-Government — 3%
-```
-
-the demographics view answers:
-
-```text
-Education
-18 schools
-Baseline demand: 0.42 ML/day
-
-Health / Critical Services
-4 hospitals & clinics
-Baseline demand: 0.31 ML/day
-
-Government
-11 facilities
-Baseline demand: 0.28 ML/day
-```
-
-You don't necessarily need to display the demand underneath every row in the collapsed state. Clicking/hovering a sector could reveal it.
-
-I'd also distinguish **population sectors** from **facility counts**. For example, households are a count of service connections/households, while schools and hospitals are infrastructure. That avoids implying that all sector entries represent the same thing.
-
-The provenance labels you wanted earlier fit especially well here:
-
-```text
-6,840
-Households
-ACTUAL
-
-18
-Schools
-HISTORICAL
-
-10.0 ML/day
-Baseline demand
-ESTIMATED
-```
-
-Keep `ACTUAL`, `HISTORICAL`, `ESTIMATED`, etc. visually tiny.
-
-For the graphs, I agree with your sketch: **do not force them into the right-hand demographics rail**. They need horizontal space.
-
-I would make `Water Balance Analysis` a collapsible section spanning the entire width beneath the map + demographic profile.
-
-Default:
-
-```text
-WATER BALANCE ANALYSIS
-
-Required demand     10.0 ML/day
-Unmet demand         1.1 ML/day
-Supply                9.4 ML/day
-Reserve                  22%
-
-                                  View analysis ↓
-```
-
-Expanded:
-
-```text
-┌───────────────────────────────────────────────────────────────┐
-│ WATER BALANCE ANALYSIS                              Collapse ↑ │
-├───────────────────────────────────────────────────────────────┤
-│ Required Demand                                             │
-│ █████████████ Households                                    │
-│ █████ Agriculture                                           │
-│ ███ Commercial                                              │
-│ ██ Public Services                                          │
-│                                                               │
-├───────────────────────────────┬───────────────────────────────┤
-│ Unmet Demand                  │ Supply vs Demand              │
-│                               │                               │
-│ sector bars                   │ Supply      ███████ 9.4      │
-│ showing deficits              │ Demand      █████████ 10.5   │
-│                               │ Gap         1.1 ML/day        │
-├───────────────────────────────┴───────────────────────────────┤
-│ Reserve                                                       │
-│ ███████████████████░░░░   22% protected / 44% closing etc.  │
-└───────────────────────────────────────────────────────────────┘
-```
-
-I would actually avoid four equally sized little charts. Instead:
-
-**Required Demand** deserves the full-width first row because it explains *where demand comes from*. Then put **Unmet Demand** and **Supply vs Demand** side-by-side. Reserve can be a shallow full-width strip underneath.
-
-That gives you hierarchy instead of another 2×2 dashboard.
-
-For the graph types:
-
-- **Required demand:** horizontal bars by sector.
-- **Unmet demand:** horizontal bars by sector; zero-demand-met sectors can remain extremely subtle.
-- **Supply vs demand:** two large comparison bars plus the resulting gap/surplus.
-- **Reserve:** horizontal capacity/level visualization rather than a circular gauge.
-
-For your UI style, I would avoid pie charts entirely here.
-
-And this is where the deep connection becomes useful. There should not be separate values called “demographics demand,” “reservoir demand,” and “planning demand.”
-
-It should be one chain:
-
-```text
-DEMOGRAPHICS
-# households
-# schools
-# hospitals
-sector baseline demand
-         │
-         ▼
-REQUIRED DEMAND
-         │
-         ▼
-RESERVOIR
-available / allocable water
-         │
-         ▼
-ALLOCATION ENGINE
-         │
-         ├──────────────► UNMET DEMAND GRAPH
-         │
-         ▼
-3D PLANNING VIEW
-buildings visually react
-```
-
-For example, increase school demand:
-
-```text
-Schools
-0.4 → 0.8 ML/day
-```
-
-Immediately:
-
-- Required Demand graph increases.
-- Total municipality demand increases.
-- Supply gap can increase.
-- Reservoir condition changes.
-- School satisfaction can fall.
-- School buildings in the 3D model turn warning/red.
-- Unmet Demand graph increases.
-- AI receives the updated imbalance.
-
-Likewise, if you increase source supply from the reservoir controls:
-
-```text
-Supply 9 → 12 ML/day
-```
-
-then the map/demographics view should update:
-
-```text
-Supply capacity      ↑
-Allocable water      ↑
-Unmet demand         ↓
-Reserve pressure     changes
-```
-
-and the 3D planning scene reacts accordingly.
-
-This also tells us what the AI assistant should do.
-
-I like your proposed prompt:
-
-> **“Where is the imbalance?”**
-
-That should probably be one of DALOY's primary quick actions.
-
-When clicked, it should not perform new calculations. It reads the current structured state and tells the user where the mismatch exists. That matches the architecture in your PDF where calculations happen before AI, and the AI explains structured results rather than inventing the math. :chatgpt-content-reference{index="1"}
+Do not make it only malls. Group establishments by type.
 
 For example:
 
 ```text
-✦ DALOY
+DEVELOPMENT ASSET LIBRARY
 
-Where is the imbalance?
+Residential
+• Subdivision
+• Apartment / condominium
+• Socialized housing project
 
-The largest imbalance is in household supply.
+Commercial
+• Shopping mall
+• Supermarket
+• Public market
+• Restaurant
+• Office building
+• Commercial complex
 
-• Required: 7.0 ML/day
-• Allocated: 5.8 ML/day
-• Unmet: 1.2 ML/day
-• Satisfaction: 83%
+Tourism
+• Hotel
+• Resort
+• Convention facility
 
-Schools and critical services remain fully supplied.
+Public / Institutional
+• Hospital
+• School
+• University
+• Government office
+• Evacuation center
 
-The municipality also has a 0.9 ML/day overall supply gap,
-so this cannot be resolved through allocation alone without
-reducing another sector's share.
+Industrial
+• Factory
+• Processing facility
+• Warehouse
+• Ice plant
 
-Try:
-Increase supply, reduce NRW, or rebalance allocations.
+Agriculture / Livelihood
+• Poultry farm
+• Piggery
+• Aquaculture facility
+• Agricultural processing facility
+
+Water Infrastructure
+• Water treatment plant
+• Reservoir
+• Pump station
+• Rainwater collection facility
 ```
 
-Even better, when DALOY says **Households**, briefly highlight:
+For the hackathon, though, I would not implement all of those. Start with around **8–10 assets**.
 
-- Household bar in the demand graph
-- households in the 3D planning scene
-- relevant allocation entry
-- possibly the affected portion of the map/profile
-
-That creates the feeling that DALOY actually understands the whole model.
-
-I would give it four contextual quick questions:
+A practical MVP set would be:
 
 ```text
-✦ Ask DALOY
-
-Where is the imbalance?
-Who has unmet demand?
-What is causing the shortage?
-What should I test next?
+Mall
+Subdivision
+Hospital
+School
+Hotel
+Public Market
+Factory
+Poultry Farm
+Government Facility
+Evacuation Center
 ```
 
-Your PDF already defines essentially those AI roles as explain, compare, suggest and warn, including specifically identifying who becomes disadvantaged by an allocation. :chatgpt-content-reference{index="2"}
+That already demonstrates several different demand patterns.
 
-One adjustment I would make to your notebook sketch: don't put the AI panel permanently below the graphs. Keep DALOY globally accessible as the floating assistant you already planned. When the user asks **“Where is the imbalance?”**, it can open a narrow glass panel on the right and leave the graphs visible behind it.
+The next step is to define what makes each asset unique.
 
-So the final concept becomes:
+A mall should not use the same input form as a hospital.
 
-> **Map/Demographics = what exists and what it requires.**  
-> **Reservoir = what water exists.**  
-> **3D Planning = where that water goes.**  
-> **Graphs = whether the system balances.**  
-> **DALOY = explains why it does or doesn't balance.**
+For example:
 
-That is a much stronger architecture than treating demographics as another static information page.
+```text
+MALL
+
+Floor area
+Employees
+Visitors/day
+Operating hours
+Restaurants/food court
+Water efficiency
+Rainwater harvesting
+```
+
+A hospital:
+
+```text
+HOSPITAL
+
+Number of beds
+Employees
+Patients/day
+Visitors/day
+Laundry facility
+Operating hours
+```
+
+A hotel:
+
+```text
+HOTEL
+
+Number of rooms
+Occupancy rate
+Employees
+Restaurant capacity
+Pool/spa
+Laundry
+```
+
+A subdivision:
+
+```text
+SUBDIVISION
+
+Housing units
+Average household size
+Occupancy rate
+Common facilities
+Landscaping demand
+```
+
+A school:
+
+```text
+SCHOOL
+
+Students
+Teachers/staff
+Operating days
+School hours
+Canteen
+```
+
+A poultry farm:
+
+```text
+POULTRY FARM
+
+Number of birds
+Cleaning frequency
+Processing activity
+Worker count
+```
+
+A factory:
+
+```text
+FACTORY
+
+Employees
+Production capacity
+Operating hours
+Process-water requirement
+Cooling requirement
+```
+
+This is why I would make each asset have a **profile schema**.
+
+Conceptually:
+
+```ts
+AssetTemplate {
+  id
+  name
+  category
+  modelPath
+
+  inputs[]
+  demandFormula
+
+  defaultValues
+}
+```
+
+Then the user selects an establishment and edits its assumptions.
+
+For example:
+
+```text
+PROPOSED SHOPPING MALL
+
+Floor Area
+18,000 m²
+
+Employees
+350
+
+Visitors
+4,000 / day
+
+Water-efficient fixtures
+YES
+
+Rainwater harvesting
+NO
+
+Estimated water demand
+1.15 ML/day
+
+[ Place Development ]
+```
+
+The important thing is that the water-demand number is calculated by your own formula engine.
+
+Gemma does not calculate it.
+
+For example:
+
+```text
+Mall Demand =
+Floor Area Demand
++ Employee Demand
++ Visitor Demand
++ Food Service Demand
+- Water Efficiency Savings
+- Rainwater Contribution
+```
+
+A subdivision might use:
+
+```text
+Subdivision Demand =
+Housing Units
+× Average Household Size
+× Per-Capita Water Requirement
+```
+
+Hospital:
+
+```text
+Hospital Demand =
+Beds × Bed Demand Factor
++ Employees × Staff Factor
++ Outpatient Demand
++ Laundry Demand
+```
+
+So each establishment has a slightly different calculation model.
+
+Then comes the 3D placement.
+
+Your asset bank contains the 3D models:
+
+```text
+models/
+    mall.glb
+    hospital.glb
+    school.glb
+    hotel.glb
+    subdivision.glb
+    factory.glb
+    poultry.glb
+```
+
+You drag one from the UI.
+
+The application remembers:
+
+```ts
+selectedAsset = mall
+```
+
+When you move over the Three.js terrain, you use raycasting.
+
+Conceptually:
+
+```text
+Mouse position
+     ↓
+Three.js Raycaster
+     ↓
+Intersect terrain
+     ↓
+Get world coordinates
+     ↓
+Show ghost model
+```
+
+The ghost model can be semi-transparent purple.
+
+If placement is valid:
+
+```text
+Purple preview
+✓ Release to place
+```
+
+If placement is invalid:
+
+```text
+Red preview
+✕ Cannot place here
+```
+
+Once dropped:
+
+```ts
+{
+  id: "development-001",
+  municipality: "Catbalogan",
+  assetType: "mall",
+  position: [12.4, 0, -4.8],
+
+  inputs: {
+    floorArea: 18000,
+    employees: 350,
+    visitors: 4000
+  },
+
+  dailyDemand: 1.15
+}
+```
+
+Now it becomes part of the simulation.
+
+The next part is the most important.
+
+Each placed establishment should add water demand to a **sector**.
+
+For example:
+
+```text
+Mall
+→ Commercial
+
+Hotel
+→ Tourism / Commercial
+
+Subdivision
+→ Residential
+
+Hospital
+→ Institutional / Public Service
+
+School
+→ Institutional
+
+Factory
+→ Industrial
+
+Poultry Farm
+→ Agriculture / Livelihood
+
+Public Market
+→ Commercial
+```
+
+So your municipality demand is not just one number.
+
+You might have:
+
+```text
+Residential     24 ML/day
+Agriculture     10 ML/day
+Commercial       8 ML/day
+Institutional    5 ML/day
+Industrial       2 ML/day
+```
+
+Then place a mall:
+
+```text
+Mall
++1.2 ML/day Commercial
+```
+
+Now:
+
+```text
+Commercial
+8.0 → 9.2 ML/day
+```
+
+Total demand increases automatically.
+
+Your simulation becomes:
+
+```text
+Total Demand =
+Residential
++ Agriculture
++ Commercial
++ Institutional
++ Industrial
++ Development Demands
+```
+
+Then you compare that with usable supply.
+
+For example:
+
+```text
+SUPPLY
+
+Sources               55 ML/day
+NRW                   -7 ML/day
+Environmental reserve -3 ML/day
+
+Usable supply
+45 ML/day
+```
+
+Demand:
+
+```text
+Existing demand
+42 ML/day
+
+New Mall
++1.2
+
+Hospital Expansion
++0.8
+
+Total
+44 ML/day
+```
+
+Result:
+
+```text
+Supply:      45 ML/day
+Demand:      44 ML/day
+
+Reserve:
+1 ML/day
+```
+
+The system can say:
+
+> Demand can currently be met, but only 1 ML/day of reserve remains.
+
+Then the planner places a subdivision:
+
+```text
+Subdivision
++2 ML/day
+```
+
+Now:
+
+```text
+Supply:       45
+Demand:       46
+
+Deficit:
+1 ML/day
+```
+
+Now your allocation system activates.
+
+That shortage should automatically affect your sector allocations.
+
+For example:
+
+```text
+Residential       100%
+Institutional     100%
+Agriculture        92%
+Commercial         88%
+Industrial         75%
+```
+
+depending on the allocation policy selected.
+
+The 3D reservoir should respond too.
+
+Suppose your reservoir contains:
+
+```text
+Stored water:
+80 ML
+```
+
+Before developments:
+
+```text
+Daily net deficit:
+0 ML
+```
+
+After developments:
+
+```text
+Daily deficit:
+1 ML
+```
+
+You now have:
+
+```text
+80 days of stored-water coverage
+```
+
+or whatever your assumptions say.
+
+As the simulation progresses:
+
+```text
+Day 1    79 ML
+Day 2    78 ML
+Day 3    77 ML
+```
+
+The 3D water level should physically decrease.
+
+That is where your centerpiece becomes very useful.
+
+You can visually connect everything.
+
+For example:
+
+```text
+Water Sources
+      │
+      ▼
+ Reservoir
+      │
+      ▼
+Municipality
+      │
+ ┌────┼──────────────┐
+ ▼    ▼              ▼
+Res. Agriculture Commercial
+                    │
+              ┌─────┴─────┐
+              ▼           ▼
+         Existing       Mall
+```
+
+If the mall is added, the commercial branch gets thicker.
+
+In your Sankey:
+
+```text
+Reservoir
+   │
+   └════════════ Commercial
+                     │
+                     └══ Mall
+```
+
+The wedge chart changes too.
+
+Before:
+
+```text
+Residential     51%
+Agriculture     21%
+Commercial      17%
+Institutional   11%
+```
+
+After mall:
+
+```text
+Residential     49%
+Agriculture     20%
+Commercial      20%
+Institutional   11%
+```
+
+The bubble chart may change the municipality's water-stress position.
+
+The choropleth might move:
+
+```text
+LOW → MODERATE
+```
+
+So one action propagates through the entire platform.
+
+I would structure the calculation pipeline like this:
+
+```text
+PLACED DEVELOPMENT
+
+Mall
+Hospital
+Subdivision
+etc.
+        │
+        ▼
+Development Profile
+        │
+        ▼
+Water Demand Calculator
+        │
+        ▼
+Sector Demand
+        │
+        ▼
+Municipality Total Demand
+        │
+        ▼
+Supply vs Demand
+        │
+        ├──── Reservoir Storage
+        ├──── Allocation Engine
+        ├──── Water Flow Diagram
+        ├──── Sankey
+        ├──── Wedge Chart
+        ├──── Economic Impact
+        ├──── Affordability
+        └──── Shortage Risk
+```
+
+Then Gemma sits after the calculations.
+
+```text
+Simulation Results
+        ↓
+Gemma 4 E4B
+        ↓
+Interpretation
+```
+
+For example, Gemma could say:
+
+> The proposed mall and subdivision increase Catbalogan's total demand by 3.2 ML/day. Baseline supply remains sufficient, but available reserve falls from 4.5 to 1.3 ML/day. Under the moderate drought scenario, demand exceeds supply by 5.8 ML/day, primarily affecting agriculture and commercial allocations.
+
+But those numbers are calculated by your system.
+
+The AI only explains them.
+
+I would also let users test **multiple developments together**.
+
+For example:
+
+```text
+CURRENT DEVELOPMENT PLAN
+
+Shopping Mall
++1.2 ML/day
+
+Hotel
++0.4 ML/day
+
+Subdivision
++2.1 ML/day
+
+Hospital
++0.7 ML/day
+
+TOTAL NEW DEMAND
++4.4 ML/day
+```
+
+Then the planner can toggle assets on/off.
+
+```text
+☑ Mall
+☑ Hotel
+☑ Subdivision
+☐ Hospital
+```
+
+That lets them compare:
+
+```text
+Scenario A
+Mall only
+
+Scenario B
+Mall + subdivision
+
+Scenario C
+Mall + subdivision + hospital
+```
+
+That is very useful for planning.
+
+I would also give every placed development three states:
+
+```text
+PROPOSED
+purple
+
+APPROVED
+blue/teal
+
+EXISTING
+gray
+```
+
+Then the 3D terrain can visually distinguish them.
+
+The Development Planner UI could therefore be:
+
+```text
+┌─────────────────────────────────────────────────────────────┐
+│ DEVELOPMENT PLANNER                                        │
+├───────────────┬──────────────────────────────┬──────────────┤
+│               │                              │              │
+│ ASSET LIBRARY │      3D PLANNING MAP         │ IMPACT       │
+│               │                              │              │
+│ Search...     │       ░░░ terrain ░░░       │ Supply       │
+│               │                              │ Demand       │
+│ Commercial    │          🏢                  │ Reserve      │
+│ Mall          │      proposed mall           │ Risk         │
+│ Hotel         │                              │ Cost         │
+│ Market        │                              │              │
+│               │                              │              │
+│ Residential   │                              │              │
+│ Subdivision   │                              │              │
+│ Apartment     │                              │              │
+│               │                              │              │
+│ Public        │                              │              │
+│ Hospital      │                              │              │
+│ School        │                              │              │
+│               │                              │              │
+└───────────────┴──────────────────────────────┴──────────────┘
+```
+
+One design choice I strongly recommend:
+
+Do not make the establishment model itself extremely detailed.
+
+Your system is analytical.
+
+Use simple low-poly models.
+
+For example:
+
+```text
+Mall
+simple 2–3 storey block
+
+Hospital
+block + cross silhouette
+
+School
+long low building
+
+Subdivision
+cluster of small houses
+
+Factory
+rectangular shed + chimney
+
+Hotel
+simple tower
+```
+
+This will fit much better with your monochrome planning-map style.
+
+For implementation, I would build it in this order:
+
+1. Create asset templates.
+2. Create editable forms.
+3. Create the demand formulas.
+4. Make the municipality calculation accept `developmentDemand`.
+5. Connect that to the existing reservoir/supply simulation.
+6. Add Three.js drag-and-drop placement.
+7. Update water-flow visualizations.
+8. Add scenario saving/comparison.
+9. Add Gemma interpretation last.
+
+Don't start with drag-and-drop first.
+
+The most important thing is that this works:
+
+```text
+Add Hospital
+        ↓
++0.8 ML/day
+        ↓
+Demand changes
+        ↓
+Supply balance changes
+```
+
+Once the logic works, then attach the 3D placement interface to it.
+
+That way, even if the 3D interaction has bugs during the hackathon, the **actual simulation engine is already solid**.

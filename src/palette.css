@@ -577,3 +577,76 @@ body[data-appearance="night"]{background-image:linear-gradient(rgba(25,22,30,.84
 .daloy-action{display:flex;align-items:center;gap:6px;margin-top:9px;padding:8px 10px;border-radius:7px;background:#8f55d2;color:#fff;font-size:9px;font-weight:650}
 @media(max-width:760px){.municipal-profile-stats strong{font-size:16px}.water-balance-toggle{grid-template-columns:1fr auto;gap:9px}.water-balance-summary{grid-column:1/-1;grid-row:2;grid-template-columns:repeat(2,minmax(0,1fr));row-gap:7px}.water-balance-summary>span:nth-child(odd){border-left:0;padding-left:0}.analysis-expand{grid-column:2;grid-row:1}.water-balance-charts{grid-template-columns:1fr;padding:0 9px 10px}.required-demand-chart,.reserve-strip{grid-column:auto}.analysis-bar-row{grid-template-columns:minmax(95px,1fr) minmax(60px,2fr) 42px}.comparison-line{grid-template-columns:60px minmax(50px,1fr) 88px}.daloy-assistant{right:12px;bottom:12px}.daloy-questions{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){.analysis-bar-row,.analysis-track>i,.reserve-track>i,.daloy-panel,.daloy-launcher{transition:none;animation:none}}
+
+/* Development planner uses the town itself as the main workspace. */
+.planner-launch{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:36px;padding:0 11px;border:1px solid #ceb9dd;border-radius:8px;background:#f4ebfa;color:#70429d;font-size:11px;font-weight:700;white-space:nowrap;cursor:pointer}
+.planner-launch:hover{background:#eadbf5;border-color:#a874cc}
+.planner-launch span{min-width:17px;height:17px;display:grid;place-items:center;border-radius:999px;background:#8250b7;color:white;font-size:10px}
+.development-overlay{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:18px;background:#1e1728bf;backdrop-filter:blur(7px)}
+.development-planner{display:flex;flex-direction:column;width:min(1600px,100%);height:min(930px,calc(100dvh - 36px));overflow:hidden;border:1px solid #dcd7df;border-radius:16px;background:#faf9f7;box-shadow:0 26px 90px #130d1f55;color:#302938}
+.development-planner-head{display:flex;align-items:center;justify-content:space-between;gap:20px;min-height:74px;padding:14px 22px;border-bottom:1px solid #e2dde5;background:#f9f8f7}
+.development-planner-head h2{margin:0;font-size:23px;font-weight:700;letter-spacing:-.035em}
+.development-planner-head p{margin:3px 0 0;color:#655b6b;font-size:12px}
+.development-head-actions{display:flex;align-items:center;gap:9px}
+.development-save,.development-close,.development-return,.development-place-button,.development-config-actions button{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:40px;padding:0 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer}
+.development-save,.development-place-button{border:1px solid #8451b9;background:#8956bf;color:white}
+.development-save:hover,.development-place-button:hover{background:#70429d}
+.development-close{width:40px;padding:0;border:1px solid #dfd8e3;background:#fff;color:#54485c}
+.development-close:hover{background:#f1e9f4}
+.development-planner-body{display:grid;grid-template-columns:minmax(220px,255px) minmax(420px,1fr) minmax(285px,320px);min-height:0;flex:1}
+.development-library,.development-inspector{min-height:0;overflow:auto;padding:18px;background:#fcfbfa}
+.development-library{border-right:1px solid #e4e0e6}
+.development-inspector{border-left:1px solid #e4e0e6}
+.development-pane-head,.development-placed-head,.development-map-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.development-pane-head h3,.development-placed-head h3,.development-map-head h3{margin:0;color:#302938;font-size:14px;font-weight:750}
+.development-pane-head>span,.development-placed-head>span{color:#786c80;font-size:11px}
+.development-search{display:flex;align-items:center;gap:8px;min-height:42px;margin-top:16px;padding:0 11px;border:1px solid #dad4df;border-radius:8px;background:white;color:#8f61b5}
+.development-search input{width:100%;min-width:0;border:0;outline:0;background:transparent;color:#302938;font-size:12px}
+.development-library-hint{margin:12px 0 14px;color:#6b5f71;font-size:11px;line-height:1.5}
+.development-library-list{display:grid;gap:13px}
+.development-library-list h4{margin:0 0 5px;color:#897a92;font-size:10px;font-weight:750;letter-spacing:.035em}
+.development-asset{display:flex;align-items:center;justify-content:space-between;gap:6px;width:100%;min-height:38px;padding:7px 9px;border:1px solid transparent;border-radius:7px;background:transparent;color:#44394b;text-align:left;font-size:12px;cursor:grab}
+.development-asset svg{color:#aa9db2;flex:0 0 auto}
+.development-asset:hover,.development-asset.selected{border-color:#d9c3e8;background:#f1e8f7;color:#71449e}
+.development-asset:active{cursor:grabbing}
+.development-workspace{display:flex;flex-direction:column;min-width:0;min-height:0;background:#f1f3f1}
+.development-map-head{min-height:63px;padding:11px 17px;border-bottom:1px solid #dfe5e2;background:#f7f8f6}
+.development-map-head p{margin:4px 0 0;color:#60706c;font-size:11px;line-height:1.4}
+.development-plan-count{flex:0 0 auto;padding:6px 9px;border-radius:999px;background:#e8efeb;color:#31736d;font-size:11px;font-weight:700}
+.development-scene{position:relative;min-height:290px;flex:1;background:#f5f5f2}
+.development-scene .maquette-wrap{position:absolute;inset:0}
+.maquette-wrap.is-placing canvas{cursor:crosshair}
+.development-placement-note{position:absolute;left:50%;bottom:14px;z-index:4;display:flex;align-items:center;gap:10px;width:max-content;max-width:calc(100% - 24px);padding:9px 12px;border:1px solid #c9b3d9;border-radius:8px;background:#fdfafeed;box-shadow:0 6px 20px #2d1f3d20;color:#623486;font-size:12px;font-weight:700;transform:translateX(-50%)}
+.development-placement-note button{color:#784d9b;font-size:11px;text-decoration:underline;cursor:pointer}
+.development-placed-head{padding:12px 17px;border-top:1px solid #dfe5e2;background:#fafbf9}
+.development-placed-list{display:grid;gap:5px;min-height:70px;max-height:172px;overflow:auto;padding:0 12px 12px;background:#fafbf9}
+.development-empty{align-self:center;margin:0;padding:12px;color:#6c7a74;font-size:12px;line-height:1.45}
+.development-placed{display:flex;align-items:center;gap:7px;border:1px solid #e1e6e2;border-radius:8px;background:white}
+.development-placed.selected{border-color:#ad83d0;background:#f8f2fc}
+.development-placed-select{display:flex;align-items:center;gap:8px;flex:1;min-width:0;min-height:49px;padding:5px 9px;text-align:left;cursor:pointer}
+.development-placed-select>span{display:grid;gap:2px;min-width:0;flex:1}.development-placed-select strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#332d39;font-size:12px}.development-placed-select small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#746a79;font-size:10px}.development-placed-select b{color:#513f5c;font-size:11px;white-space:nowrap}
+.development-placed-select>i,.development-status-key i{display:block;width:10px;height:10px;flex:0 0 auto;border-radius:3px}
+.development-placed-select>i.status-proposed,.development-status-key .status-proposed{background:#9762d0}.development-placed-select>i.status-approved,.development-status-key .status-approved{background:#2b9d9a}.development-placed-select>i.status-existing,.development-status-key .status-existing{background:#8b9291}
+.development-active{display:grid;place-items:center;min-width:34px;min-height:44px;margin-right:5px;cursor:pointer}.development-active input{width:16px;height:16px;accent-color:#8754bc;cursor:pointer}
+.development-active .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.development-config>h4{margin:15px 0 4px;font-size:20px;letter-spacing:-.025em}.development-config>p{margin:0 0 14px;color:#685d6e;font-size:11px;line-height:1.45}
+.development-status-field,.development-fields label{display:grid;gap:5px;margin:0 0 10px;color:#4a4150;font-size:11px;font-weight:650}
+.development-status-field select,.development-fields input{width:100%;min-height:37px;padding:6px 9px;border:1px solid #dcd5e1;border-radius:7px;background:#fff;color:#32293a;font-size:12px;font-weight:650}
+.development-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 9px}
+.development-fields label span{display:flex;justify-content:space-between;gap:4px}.development-fields label small{color:#897d8f;font-size:10px;font-weight:400;white-space:nowrap}
+.development-estimate{margin:6px 0 12px;padding:11px 12px;border-left:3px solid #8854bb;border-radius:6px;background:#f1eaf7}.development-estimate>span{display:block;color:#684d7b;font-size:10px;font-weight:700}.development-estimate strong{display:block;margin-top:4px;color:#4d2d65;font-size:23px;letter-spacing:-.03em}.development-estimate strong small{font-size:12px;letter-spacing:0}.development-estimate p{margin:3px 0 0;color:#6c5e76;font-size:10px;line-height:1.4}
+.development-place-button{width:100%}.development-place-button.active{background:#74479f}
+.development-config-actions{display:flex;gap:7px}.development-config-actions button{flex:1;border:1px solid #d4c5df;background:#f5eff9;color:#71449b}.development-config-actions button.remove{border-color:#e8d2d2;background:#fff8f8;color:#a44444}
+.development-impact{margin-top:19px;padding-top:16px;border-top:1px solid #e1dce4}.development-impact .development-pane-head svg{color:#319f9c}
+.development-impact dl{margin:11px 0}.development-impact dl>div{display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid #e9e5eb;font-size:11px}.development-impact dt{color:#665c6b}.development-impact dd{margin:0;color:#322a39;font-weight:700;text-align:right;white-space:nowrap}.development-impact .added dd{color:#7745a3}.development-impact .total{border-bottom:2px solid #d1bfdf}.development-impact .total dt,.development-impact .total dd{color:#4d2f65;font-weight:750}.development-impact dd.at-risk{color:#ba4b4b}
+.development-impact-summary{margin:10px 0;padding:9px;border-radius:6px;background:#e5f2ef;color:#276b65;font-size:11px;line-height:1.45}.development-impact-summary.at-risk{background:#fff0ed;color:#a64140}
+.development-economics,.development-caveat{color:#706576;font-size:10px;line-height:1.5}
+.development-status-key{display:flex;flex-wrap:wrap;gap:9px;margin-top:15px}.development-status-key span{display:flex;align-items:center;gap:5px;color:#62596a;font-size:10px}
+.development-return{width:100%;margin-top:9px;border:1px solid #d7d0dc;background:#fff;color:#6e498e}
+.development-return:hover{background:#f3ebf8}
+.development-model-label{display:block;width:max-content;padding:5px 8px;border:1px solid #d5c9df;border-radius:5px;background:#fffef5;color:#4d3562;font-size:12px;font-weight:700;box-shadow:0 3px 10px #34243c22}
+.development-planner button:focus-visible,.development-planner input:focus-visible,.development-planner select:focus-visible,.planner-launch:focus-visible{outline:3px solid #a56ad6;outline-offset:2px}
+@media(max-width:1150px){.development-planner-body{grid-template-columns:210px minmax(330px,1fr) 270px}.development-library,.development-inspector{padding:13px}.development-fields{grid-template-columns:1fr}}
+@media(max-width:820px){.development-overlay{padding:0}.development-planner{height:100dvh;border:0;border-radius:0;overflow-y:auto}.development-planner-head{position:sticky;top:0;z-index:5;min-height:70px;padding:10px 14px}.development-planner-head h2{font-size:19px}.development-planner-head p{font-size:10px}.development-save{font-size:0;width:40px;padding:0}.development-save svg{width:16px}.development-planner-body{display:flex;flex:0 0 auto;flex-direction:column;min-height:auto;overflow:visible}.development-library,.development-inspector{flex:0 0 auto;min-height:auto;overflow:visible;border:0;border-bottom:1px solid #e4e0e6}.development-library-list{display:flex;gap:15px;overflow:auto}.development-library-list>div{min-width:150px}.development-inspector{order:2}.development-workspace{order:3;flex:0 0 auto;min-height:640px}.development-fields{grid-template-columns:repeat(2,minmax(0,1fr))}.development-scene{flex:0 0 auto;height:380px;min-height:380px}}
+@media(max-width:480px){.planner-launch{font-size:0;min-width:36px;padding:0 8px}.planner-launch svg{width:17px}.planner-launch span{font-size:10px}.development-planner-head p{max-width:27ch}.development-fields{grid-template-columns:1fr 1fr}.development-map-head{align-items:flex-start}.development-map-head p{max-width:30ch}.development-plan-count{font-size:10px}.development-placed-list{max-height:none}.development-scene{min-height:340px}}
+@media(prefers-reduced-motion:reduce){.planner-launch,.development-asset,.development-save,.development-place-button{transition:none}}

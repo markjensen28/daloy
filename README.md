@@ -24,6 +24,7 @@ npm.cmd test
 4. Save a named scenario, then compare it under Scenarios.
 5. Open Spatial view to see active pilot boundaries. Inactive municipalities are excluded from calculations.
 6. Edit sector demand and household income in Data; export the current calculated results as CSV.
+7. In the municipality 3D view, open Development planner. Configure an asset, click Place, then click the terrain or drag an asset from the library. Edit, pause, or add more establishments and watch the water balance change. Save the plan as a scenario.
 
 ## Important model details
 
@@ -33,10 +34,15 @@ The immutable baseline factory seeds 76 ML/day supply and 85 ML/day demand, a 9 
 
 All numerical values are **demonstration data, not official LGU statistics**. Calbayog's provider uses a configurable placeholder because the brief's Calbiga/Calbayog relationship is unverified. Supplemental supply illustrates a possible configurable partnership and does not assert a real service relationship. AI and forecasting remain disabled placeholders.
 
+The Development planner has ten illustrative establishment profiles. Each profile calculates ML/day from editable inputs, and active placed assets add demand to the selected municipality's existing four-sector model. Industrial assets currently use the Business + tourism channel; this mapping is shown in the planner. Proposed, approved, and existing are visual planning states. All placed assets, including those marked existing, add incremental demand unless paused. Scenario copies retain placements and assumptions in local storage. DALOY explains computed scenario values; no Gemma endpoint is connected.
+
 ## Structure
 
 - `src/engine/simulation.ts`: typed municipality data, scenario inputs, pure calculation functions.
+- `src/engine/developments.ts`: asset profiles, editable fields, and illustrative water-demand formulas.
 - `src/engine/simulation.test.ts`: active-area exclusion, conservation, drought, policy, and assistance tests.
+- `src/DevelopmentPlanner.tsx`: asset library, profile editor, plan list, and live impact view.
+- `src/CityMaquette.tsx`: interactive town scene with low-poly development placement.
 - `src/Reservoir.tsx`: animated 3D infrastructure scene with damped water-level transitions, camera controls, reduced-motion support, and a WebGL error fallback.
 - `src/Visuals.tsx`: municipal boundary map and proportional flow ribbons.
 - `src/App.tsx`: shared scenario state and interactive workspace, comparisons, editable data, methodology.
