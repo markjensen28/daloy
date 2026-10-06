@@ -257,6 +257,7 @@ export default function App() {
   };
   const spatialMunicipality = scope === "combined" ? pilots[2] : selected[0];
   const spatialResult = simulate(scenario, spatialMunicipality.id);
+  const spatialStorage = spatialResult.results[0];
   const spatialInput = scenario.inputs[spatialMunicipality.id];
   const nrwBaseline = baselineScenario.inputs[spatialMunicipality.id].nrw;
   const spatialAtBaselineNrw = simulateMunicipality(spatialMunicipality, {...spatialInput, nrw: nrwBaseline});
@@ -1059,11 +1060,6 @@ export default function App() {
         )}
         {page === "Simulation" && view === "Reservoir" && (
           <section id="spatial-section" className="spatial-section" aria-label="Samar spatial context">
-            <div className="spatial-section-heading">
-              <div><span>02 / SPATIAL CONTEXT</span><h2>Explore Samar</h2><p>Select a pilot LGU, then expand either view for its profile or allocation detail.</p></div>
-              <MapPin size={24}/>
-            </div>
-
             <div className="explore-status-strip" aria-label={`${spatialMunicipality.name} live planning summary`}>
               <div className="explore-focus"><span>Spatial focus</span><strong>{spatialMunicipality.name}</strong><small>{scope === "combined" ? "REPRESENTATIVE PILOT" : "SELECTED PILOT"}</small></div>
               <div><span>Demand covered</span><strong>{Math.round(spatialCoverage * 100)}%</strong><small>SIMULATED</small></div>
@@ -1250,6 +1246,14 @@ export default function App() {
                   </svg>
                   <div className="bubble-legend">{spatialDemands.map((item) => <span key={item.name} style={{"--sector":item.color} as React.CSSProperties}><i/>{item.name}</span>)}</div>
                   <p className={`balance-delta ${spatialResult.shortage > .05 ? "deficit" : "surplus"}`}>{spatialResult.shortage > .05 ? `${number(spatialResult.shortage)} ML/day unmet across sectors` : `${number(Math.max(0,spatialResult.allocable-spatialResult.demand))} ML/day allocable after required demand`}</p>
+                </section>
+                <section className="reserve-strip" aria-label="Protected reservoir reserve">
+                  <header><h3>Protected reserve</h3><p>{number(spatialStorage.reserveVolume)} ML protected of {number(spatialStorage.capacity)} ML capacity · Current storage {number(spatialStorage.ending)} ML</p></header>
+                  <div className="reserve-track" role="img" aria-label={`Current storage ${number(spatialStorage.ending)} ML of ${number(spatialStorage.capacity)} ML capacity; protected reserve threshold ${number(spatialStorage.reserveVolume)} ML`}>
+                    <i style={{width:`${Math.max(0,Math.min(100,spatialStorage.ending/Math.max(1,spatialStorage.capacity)*100))}%`}}/>
+                    <b style={{left:`${Math.max(0,Math.min(100,spatialStorage.reserveVolume/Math.max(1,spatialStorage.capacity)*100))}%`}}/>
+                  </div>
+                  <div className="reserve-labels"><span>0 ML</span><span>Protected threshold {number(spatialStorage.reserveVolume)} ML</span><span>Capacity {number(spatialStorage.capacity)} ML</span></div>
                 </section>
               </div>}
             </section>}
