@@ -344,9 +344,52 @@ body,.simulation-main,main:not(.simulation-main){background:var(--paper);color:v
 @media(max-width:760px){.nrw-simulator-toggle{grid-template-columns:1fr auto;gap:9px;padding:12px}.nrw-quick-stats{grid-column:1/-1;grid-row:2;grid-template-columns:repeat(3,minmax(0,1fr))}.nrw-quick-stats>span:first-child{border-left:0;padding-left:0}.nrw-expand-label{grid-column:2;grid-row:1}.nrw-simulator-content{padding:12px}.nrw-simulator-intro{display:block}.nrw-assumption-tag{display:inline-block;margin-top:8px}.nrw-rate-compare{grid-template-columns:1fr 26px 1fr;gap:7px;padding:9px}.nrw-rate-compare .nrw-recovered{grid-column:1/-1;padding:9px 0 0;border-left:0;border-top:1px solid var(--divider)}.nrw-balance-line{justify-content:flex-start}.nrw-balance-line span{white-space:normal}.nrw-outcomes{grid-template-columns:1fr}.nrw-outcomes>div{padding:8px 10px}.nrw-outcomes strong{font-size:15px}}
 @media(prefers-reduced-motion:reduce){.nrw-simulator-content{animation:none}.nrw-expand-label svg{transition:none}}
 
+/* Water balance charts: radial stacked demand and required-vs-delivered bubbles. */
+.water-balance-summary{grid-template-columns:repeat(3,minmax(0,1fr))}
+.water-balance-charts>section.wedge-stack-chart,.water-balance-charts>section.demand-bubble-chart{grid-column:auto;min-height:300px}
+.wedge-chart-layout{display:grid;grid-template-columns:minmax(215px,.95fr) minmax(175px,1fr);align-items:center;gap:8px;margin-top:6px}
+.wedge-stack-chart svg{display:block;width:100%;max-height:245px;overflow:visible}
+.wedge-guide{fill:none;stroke:#e7e1e9;stroke-width:1;stroke-dasharray:2 3}
+.wedge-center{fill:#fbf9fc;stroke:#eee8f1;stroke-width:1}
+.wedge-center-label{fill:#8c7e92;font-size:7px;font-weight:700;letter-spacing:.08em}
+.wedge-center-value{fill:#382e40;font-size:15px;font-weight:700}
+.wedge-center-unit{fill:#85788a;font-size:7px}
+.chart-sector-focused path{filter:drop-shadow(0 1px 3px #382e4040);stroke:#342740;stroke-width:2.5}
+.balance-chart-legend{display:grid;gap:5px;min-width:0}
+.balance-chart-legend>div{display:grid;grid-template-columns:8px minmax(0,1fr) auto;align-items:center;gap:6px;color:#534a59;font-size:8px}
+.balance-chart-legend>div>i{width:8px;height:8px;border-radius:3px;background:var(--sector)}
+.balance-chart-legend>div>b{color:#45384d;font-size:8px;white-space:nowrap}
+.balance-chart-legend>div>small{grid-column:2/-1;color:var(--status);font-size:7px;text-align:right}
+.balance-chart-legend>p{display:flex;align-items:center;gap:5px;margin-top:3px;color:#82788a;font-size:7px}
+.balance-chart-legend>p i{width:7px;height:7px;margin-left:3px;border-radius:2px;background:#7360c7}
+.balance-chart-legend>p i.legend-unmet{background:#dca340}
+.balance-chart-legend>p i.legend-delivered{margin-left:0;background:#249f9a}
+.demand-bubble-chart>svg{display:block;width:100%;height:240px;margin-top:6px;overflow:visible}
+.bubble-grid{stroke:#e7e2e9;stroke-width:1}
+.bubble-equality{stroke:#9988a4;stroke-width:1.5;stroke-dasharray:4 4}
+.bubble-tick{fill:#8a8090;font-size:8px}
+.bubble-axis-label{fill:#685d70;font-size:8px;font-weight:600}
+.demand-bubble{cursor:pointer;opacity:.82;transition:opacity .16s ease,filter .16s ease,stroke-width .16s ease}
+.demand-bubble:hover,.demand-bubble:focus{opacity:1;filter:drop-shadow(0 2px 4px #30213d55);outline:none}
+.bubble-legend{display:flex;flex-wrap:wrap;gap:7px 12px;margin:0 6px;color:#5c5362;font-size:8px}
+.bubble-legend span{display:inline-flex;align-items:center;gap:5px}
+.bubble-legend i{width:8px;height:8px;border-radius:50%;background:var(--sector)}
+.demand-bubble-chart .balance-delta{margin-top:10px}
+@media(max-width:1050px){.water-balance-charts{grid-template-columns:1fr}.water-balance-charts>section.wedge-stack-chart,.water-balance-charts>section.demand-bubble-chart{min-height:0}}
+@media(max-width:760px){.water-balance-summary{grid-template-columns:repeat(3,minmax(0,1fr))}.water-balance-summary>span{padding-left:7px;padding-right:7px}.wedge-chart-layout{grid-template-columns:minmax(180px,.9fr) 1fr}.wedge-stack-chart svg{max-height:220px}.demand-bubble-chart>svg{height:225px}}
+@media(max-width:460px){.wedge-chart-layout{grid-template-columns:1fr;justify-items:center}.wedge-stack-chart svg{width:min(100%,340px);max-height:none}.balance-chart-legend{width:100%;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.balance-chart-legend>p{grid-column:1/-1}.bubble-legend{gap:7px}.demand-bubble-chart>svg{height:210px}}
+@media(prefers-reduced-motion:reduce){.demand-bubble{transition:none}}
+
+/* Explicit day/night appearance control; day is the default plain canvas. */
+.appearance-toggle{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:76px;min-height:44px;padding:0 10px;border:1px solid rgba(116,101,128,.2);border-radius:9px;background:rgba(255,255,255,.82);color:#665474;font-size:10px;font-weight:650;transition:background .18s ease,border-color .18s ease,color .18s ease}
+.appearance-toggle:hover{border-color:#c8b3dc;background:#f4edf9;color:#7146a1}
+.appearance-toggle:focus-visible{outline:3px solid #a66be6;outline-offset:2px}
+@media(max-width:480px){.topbar{padding:0 12px;gap:8px}.brand{gap:7px;font-size:17px}.brand-icon{width:34px;height:36px}.header-end{gap:6px}.appearance-toggle{min-width:64px;padding:0 7px}.header-end .icon-button{width:34px;height:38px}.avatar{width:30px;height:30px}}
+
 /* Samar-inspired backdrop: visibly present, but heavily toned down behind the planning UI. */
 :root{background:transparent}
-body{min-height:100vh;background-color:#1c1a21;background-image:linear-gradient(rgba(25,22,30,.9),rgba(25,22,30,.92)),url("/background-img.jfif");background-position:center,center 68%;background-size:cover,cover;background-attachment:fixed,fixed;background-repeat:no-repeat,no-repeat;color:var(--deep)}
+body{min-height:100vh;background-color:#f7f6f5;background-image:none;background-position:center;background-size:cover;background-attachment:fixed;background-repeat:no-repeat;color:var(--deep);transition:background-color .22s ease}
+body[data-appearance="night"]{background-color:#1c1a21;background-image:linear-gradient(rgba(25,22,30,.84),rgba(25,22,30,.88)),url("/background-img.jfif");background-position:center,center 68%;background-size:cover,cover;background-attachment:fixed,fixed;background-repeat:no-repeat,no-repeat}
 .topbar{background:rgba(250,249,247,.88);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
 .simulation-main{background:rgba(250,249,247,.16)}
 .simulation-main .model-stage{background:radial-gradient(ellipse at 50% 42%,rgba(255,255,255,.9) 0%,rgba(250,249,247,.76) 66%,rgba(231,227,233,.62) 100%)}
@@ -436,8 +479,8 @@ body{min-height:100vh;background-color:#1c1a21;background-image:linear-gradient(
 @media(prefers-reduced-motion:reduce){.planning-workspace,.planning-map,.planning-model,.explore-detail-rail{transition:none}}
 /* Keep sector identity in the icon while the card edge and meter show coverage. */
 .simulation-main .sector-card{border-top-color:var(--status,var(--sector))}.simulation-main .sector-card p{color:var(--status,var(--sector))}.simulation-main .sector-card>div:last-child i{background:var(--status,var(--sector))}
-/* Let the Samar artwork frame the interface instead of being hidden behind opaque sheets. */
-body{background-image:linear-gradient(rgba(25,22,30,.78),rgba(25,22,30,.84)),url("/background-img.jfif")}
+/* Let the Samar artwork frame the interface in night mode; day mode stays plain. */
+body[data-appearance="night"]{background-image:linear-gradient(rgba(25,22,30,.84),rgba(25,22,30,.88)),url("/background-img.jfif")}
 .topbar{background:rgba(250,249,247,.78)}
 .simulation-main{background:rgba(250,249,247,.07)}
 .simulation-main .scopebar,.simulation-main .metrics-ribbon,.simulation-main .balance-message{background:rgba(250,249,247,.76);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}

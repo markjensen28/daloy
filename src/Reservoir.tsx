@@ -1,5 +1,6 @@
 type ReservoirProps = {
   level: number;
+  protectedLevel?: number;
   paused: boolean;
   reset: number;
   showDetails: boolean;
@@ -17,13 +18,19 @@ function waterMask(level: number) {
   return `${ASSET_ROOT}/masks/water-${String(level).padStart(3, "0")}.png`;
 }
 
-export default function Reservoir({ level, paused, reset, showDetails, onToggleDetails }: ReservoirProps) {
-  const percent = clamp(level * 100, 0, 100);
+export default function Reservoir({ level, protectedLevel = 0, paused, reset, showDetails, onToggleDetails }: ReservoirProps) {
+  const actualPercent = clamp(level * 100, 0, 100);
+  const protectedPercent = clamp(protectedLevel * 100, 0, 100);
+  // The scene's visible water communicates allocable storage above the
+  // protected reserve, while the metrics continue to report actual storage.
+  const percent = protectedPercent >= 100
+    ? 0
+    : clamp((actualPercent - protectedPercent) / (100 - protectedPercent) * 100, 0, 100);
   const low = Math.floor(percent / 5) * 5;
   const high = Math.min(100, low + 5);
   const mix = high === low ? 0 : (percent - low) / (high - low);
   // Fade the painted spillway into a dry, monochrome riverbed near empty storage.
-  const dryWaterwayOpacity = clamp((20 - percent) / 20, 0, 1);
+  const dryWaterwayOpacity = clamp((24 - percent) / 24, 0, 1);
   const maskStyle = (maskLevel: number, opacity: number) => ({
     WebkitMaskImage: `url("${waterMask(maskLevel)}")`,
     maskImage: `url("${waterMask(maskLevel)}")`,
@@ -33,12 +40,13 @@ export default function Reservoir({ level, paused, reset, showDetails, onToggleD
   return (
     <section
       className={`dam-system-model${paused ? " is-paused" : ""}${percent <= 0.5 ? " is-empty" : ""}`}
-      data-level={Math.round(percent)}
+      data-level={Math.round(actualPercent)}
+      data-usable-level={Math.round(percent)}
       data-reset={reset}
       role="button"
       tabIndex={0}
       aria-expanded={showDetails}
-      aria-label={`Reservoir at ${Math.round(percent)} percent storage. Activate to ${showDetails ? "hide" : "show"} details.`}
+      aria-label={`Reservoir at ${Math.round(actualPercent)} percent closing storage, with ${Math.round(protectedPercent)} percent protected reserve and ${Math.round(percent)} percent usable storage above reserve. Activate to ${showDetails ? "hide" : "show"} details.`}
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();

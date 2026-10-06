@@ -1,4 +1,4 @@
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import {
   Activity,
   ArrowDownRight,
@@ -25,6 +25,7 @@ import {
   MapPin,
   Maximize2,
   Minimize2,
+  Moon,
   Plus,
   RotateCcw,
   Save,
@@ -54,6 +55,18 @@ const number = (v: number) =>
   v.toLocaleString("en-US", { maximumFractionDigits: 1 });
 const coverageColor = (coverage: number, sectorColor: string) =>
   coverage >= .999 ? sectorColor : coverage >= .5 ? "#e2b13c" : "#d95757";
+const wedgePath = (cx: number, cy: number, inner: number, outer: number, start: number, end: number) => {
+  const point = (radius: number, angle: number) => {
+    const radians = (angle - 90) * Math.PI / 180;
+    return [cx + radius * Math.cos(radians), cy + radius * Math.sin(radians)];
+  };
+  const [outerStartX, outerStartY] = point(outer, start);
+  const [outerEndX, outerEndY] = point(outer, end);
+  const [innerEndX, innerEndY] = point(inner, end);
+  const [innerStartX, innerStartY] = point(inner, start);
+  const largeArc = end - start > 180 ? 1 : 0;
+  return `M ${outerStartX} ${outerStartY} A ${outer} ${outer} 0 ${largeArc} 1 ${outerEndX} ${outerEndY} L ${innerEndX} ${innerEndY} A ${inner} ${inner} 0 ${largeArc} 0 ${innerStartX} ${innerStartY} Z`;
+};
 const money = (v: number) => "₱" + number(v);
 const percentChange = (value: number, reference: number) => {
   if (reference <= 0) return value <= 0 ? "0% vs baseline" : "New vs baseline";
@@ -173,6 +186,10 @@ function Toggle({
 }
 export default function App() {
   const [page, setPage] = useState("Simulation"),
+    [appearance, setAppearance] = useState<"day" | "night">(() => {
+      try { return localStorage.getItem("water-economics-appearance-v1") === "night" ? "night" : "day"; }
+      catch { return "day"; }
+    }),
     [scope, setScope] = useState("combined"),
     [scenarios, setScenarios] = useState<Scenario[]>(() => [
       baselineScenario,
@@ -198,6 +215,10 @@ export default function App() {
     [nrwSimulatorOpen, setNrwSimulatorOpen] = useState(false),
     [daloyOpen, setDaloyOpen] = useState(false),
     [daloyQuestion, setDaloyQuestion] = useState("");
+  useEffect(() => {
+    document.body.dataset.appearance = appearance;
+    try { localStorage.setItem("water-economics-appearance-v1", appearance); } catch { /* Appearance still applies for this session. */ }
+  }, [appearance]);
   const handleDamDetailsToggle = () => {
     if (!controlsOpen && !impactOpen && !reservoirDetailsOpen) {
       setControlsOpen(true);
@@ -275,6 +296,15 @@ export default function App() {
     coverage: spatialResult.coverage[i],
     color: sectorColors[i],
     icon: [Home, Leaf, Factory, Landmark][i],
+  }));
+  const balanceDemandMax = Math.max(1, ...spatialDemands.map((item) => item.value));
+  const bubbleDomain = Math.max(1, ...spatialDemands.map((item) => item.value), ...spatialDemands.map((item) => item.allocation));
+  const bubblePlot = { left: 54, top: 30, right: 354, bottom: 205 };
+  const bubblePoints = spatialDemands.map((item) => ({
+    ...item,
+    x: bubblePlot.left + item.value / bubbleDomain * (bubblePlot.right - bubblePlot.left),
+    y: bubblePlot.bottom - item.allocation / bubbleDomain * (bubblePlot.bottom - bubblePlot.top),
+    radius: 6 + Math.sqrt(item.value / balanceDemandMax) * 13,
   }));
   const spatialSectorDetails: Record<string, { summary: string; facts: Array<[string, string]> }> = Object.fromEntries(spatialDemands.map((item) => [item.name, {
     summary: `${item.name} in the illustrative ${spatialMunicipality.name} model. The 3D buildings use the current allocation result.`,
@@ -416,7 +446,7 @@ export default function App() {
     setModal(true);
   };
   return (
-    <div className="app">
+    <div className="app" data-theme={appearance}>
       <header className="topbar">
         <a
           className="brand"
@@ -434,33 +464,18 @@ export default function App() {
             <small>Samar planning studio</small>
           </span>
         </a>
-        <nav aria-label="Main navigation">
-          {[
-            ["Simulation", FlaskConical],
-            ["Scenarios", GitBranch],
-            ["Data", Database],
-            ["Methodology", BookOpen],
-          ].map(([name, Icon]) => {
-            const I = Icon as typeof Activity;
-            return (
-              <button
-                key={name as string}
-                onClick={() => {
-                  setPage(name as string);
-                }}
-                className={page === name ? "active" : ""}
-              >
-                <I size={16} />
-                <span>{name as string}</span>
-              </button>
-            );
-          })}
-        </nav>
         <div className="header-end">
-          <span className="demo-pill">
-            <i />
-            Demo workspace
-          </span>
+          <button
+            className="appearance-toggle"
+            type="button"
+            aria-label={appearance === "day" ? "Switch to night mode with the background image" : "Switch to plain day mode"}
+            aria-pressed={appearance === "night"}
+            title={appearance === "day" ? "Switch to night mode" : "Switch to day mode"}
+            onClick={() => setAppearance((mode) => mode === "day" ? "night" : "day")}
+          >
+            {appearance === "day" ? <Moon size={16}/> : <Sun size={16}/>}
+            <span>{appearance === "day" ? "Night" : "Day"}</span>
+          </button>
           <button
             className="icon-button"
             aria-label="View methodology and help"
@@ -822,6 +837,7 @@ export default function App() {
                       >
                         <Reservoir
                           level={result.ending / result.capacity}
+                          protectedLevel={result.capacity > 0 ? protectedReserveVolume / result.capacity : 0}
                           paused={false}
                           reset={0}
                           showDetails={reservoirDetailsOpen}
@@ -846,10 +862,10 @@ export default function App() {
                             <em>{result.demand > 0 ? `${number(result.gap / result.demand * 100)}% of demand` : "No demand"}</em>
                           </div>
                           <div className="storage-metric">
-                            <span><Droplets size={13} /> Reservoir storage</span>
+                            <span><Droplets size={13} /> Closing storage</span>
                             <strong>{number(result.ending)}<small> / {number(result.capacity)} ML</small></strong>
                             <i><b style={{ width: `${Math.max(0, Math.min(100, (result.ending / result.capacity) * 100))}%` }} /></i>
-                            <em>{Math.round((result.ending / result.capacity) * 100)}% full</em>
+                            <em>{Math.round((result.ending / result.capacity) * 100)}% full · {number(Math.max(0, result.ending - protectedReserveVolume))} ML above reserve</em>
                           </div>
                         </div>
                         <div className={`balance-message details-pop ${result.shortage > 0 ? "warning" : ""}`}>
@@ -1182,33 +1198,58 @@ export default function App() {
                   <span>Required <b>{number(spatialResult.demand)} ML/day</b></span>
                   <span>Unmet <b>{number(spatialResult.shortage)} ML/day</b></span>
                   <span>Allocable <b>{number(spatialResult.allocable)} ML/day</b></span>
-                  <span>Reserve <b>{number(spatialInput.reserve)}%</b></span>
                 </span>
                 <span className="analysis-expand">{waterBalanceOpen ? "Hide analysis" : "View analysis"}<ChevronRight size={16}/></span>
               </button>
               {waterBalanceOpen && <div className="water-balance-charts">
-                <section className="required-demand-chart">
-                  <header><h3>Required demand</h3><p>Current daily need by sector · ML/day</p></header>
-                  {spatialDemands.map((item) => <div className={`analysis-bar-row ${expandedSpatialSector === item.name ? "focused" : ""}`} key={item.name}>
-                    <span>{item.name}</span><div className="analysis-track"><i style={{width:`${Math.max(0,Math.min(100,item.value/Math.max(1,...spatialDemands.map((sector) => sector.value))*100))}%`,background:item.color}}/></div><b>{number(item.value)}</b>
-                  </div>)}
+                <section className="wedge-stack-chart">
+                  <header><h3>Demand allocation by sector</h3><p>Wedge length shows required volume; each wedge stacks delivered and unmet water · ML/day</p></header>
+                  <div className="wedge-chart-layout">
+                    <svg viewBox="0 0 380 270" role="img" aria-label={`Radial stacked chart: ${spatialDemands.map((item) => `${item.name}, ${number(item.allocation)} allocated of ${number(item.value)} ML per day required`).join("; ")}`}>
+                      <circle cx="190" cy="128" r="104" className="wedge-guide"/><circle cx="190" cy="128" r="76" className="wedge-guide"/><circle cx="190" cy="128" r="48" className="wedge-guide"/>
+                      {spatialDemands.map((item, index) => {
+                        const start = index * 90 + 5;
+                        const end = (index + 1) * 90 - 5;
+                        const inner = 34;
+                        const demandRadius = inner + item.value / balanceDemandMax * 72;
+                        const allocatedRadius = inner + Math.min(item.value, item.allocation) / balanceDemandMax * 72;
+                        const unmet = Math.max(0, item.value - item.allocation);
+                        return <g key={item.name} className={expandedSpatialSector === item.name ? "chart-sector-focused" : ""} role="button" tabIndex={0} aria-label={`${item.name}: ${number(item.allocation)} ML/day allocated of ${number(item.value)} required`} onMouseEnter={() => setHoverSpatialSector(item.name)} onMouseLeave={() => setHoverSpatialSector(null)} onClick={() => setExpandedSpatialSector(item.name)} onKeyDown={(event) => {if(event.key === "Enter" || event.key === " "){event.preventDefault();setExpandedSpatialSector(item.name);}}}>
+                          <path d={wedgePath(190,128,inner,demandRadius,start,end)} fill={item.color} fillOpacity=".17" stroke="white" strokeWidth="2"><title>{item.name}: {number(item.value)} ML/day required</title></path>
+                          {item.allocation > 0 && <path d={wedgePath(190,128,inner,allocatedRadius,start,end)} fill={item.color} stroke="white" strokeWidth="2"><title>{number(item.allocation)} ML/day allocated</title></path>}
+                          {unmet > .01 && <path d={wedgePath(190,128,Math.max(inner,allocatedRadius),demandRadius,start,end)} fill={coverageColor(item.coverage,item.color)} stroke="white" strokeWidth="2"><title>{number(unmet)} ML/day unmet</title></path>}
+                        </g>;
+                      })}
+                      <circle cx="190" cy="128" r="31" className="wedge-center"/>
+                      <text x="190" y="124" textAnchor="middle" className="wedge-center-label">ALLOCATED</text>
+                      <text x="190" y="143" textAnchor="middle" className="wedge-center-value">{number(spatialResult.allocation)}</text>
+                      <text x="190" y="158" textAnchor="middle" className="wedge-center-unit">of {number(spatialResult.demand)} ML/day</text>
+                    </svg>
+                    <div className="balance-chart-legend" aria-label="Sector demand details">
+                      {spatialDemands.map((item) => <div key={item.name} style={{"--sector":item.color,"--status":coverageColor(item.coverage,item.color)} as React.CSSProperties}>
+                        <i/><span>{item.name}</span><b>{number(item.allocation)} / {number(item.value)}</b><small>{number(Math.max(0,item.value-item.allocation))} unmet</small>
+                      </div>)}
+                      <p><i className="legend-delivered"/>Allocated <i className="legend-unmet"/>Unmet</p>
+                    </div>
+                  </div>
                 </section>
-                <section className="unmet-demand-chart">
-                  <header><h3>Unmet demand</h3><p>Unserved amount after current allocation</p></header>
-                  {spatialDemands.map((item) => {const unmet=Math.max(0,item.value-item.allocation);return <div className={`analysis-bar-row ${expandedSpatialSector === item.name ? "focused" : ""}`} key={item.name}>
-                    <span>{item.name}</span><div className="analysis-track"><i className="unmet-bar" style={{width:`${Math.max(0,Math.min(100,unmet/Math.max(1,...spatialDemands.map((sector) => sector.value))*100))}%`}}/></div><b>{number(unmet)}</b>
-                  </div>;})}
-                </section>
-                <section className="supply-demand-chart">
-                  <header><h3>Supply vs demand</h3><p>Allocable water compared with current requirement</p></header>
-                  <div className="comparison-line"><span>Allocable</span><div className="analysis-track"><i style={{width:`${spatialResult.allocable/Math.max(1,spatialResult.allocable,spatialResult.demand)*100}%`}}/></div><b>{number(spatialResult.allocable)} ML/day</b></div>
-                  <div className="comparison-line"><span>Required</span><div className="analysis-track"><i className="demand-bar" style={{width:`${spatialResult.demand/Math.max(1,spatialResult.allocable,spatialResult.demand)*100}%`}}/></div><b>{number(spatialResult.demand)} ML/day</b></div>
-                  <p className={`balance-delta ${spatialResult.shortage > .05 ? "deficit" : "surplus"}`}>{spatialResult.shortage > .05 ? `${number(spatialResult.shortage)} ML/day short` : `${number(Math.max(0,spatialResult.allocable-spatialResult.demand))} ML/day remaining after requirement`}</p>
-                </section>
-                <section className="reserve-strip">
-                  <header><h3>Protected reserve</h3><p>{number(spatialResult.capacity*spatialInput.reserve/100)} ML of {number(spatialResult.capacity)} ML capacity protected · current level {number(spatialResult.ending)} ML</p></header>
-                  <div className="reserve-track"><i style={{width:`${Math.max(0,Math.min(100,spatialResult.ending/Math.max(1,spatialResult.capacity)*100))}%`}}/><b style={{left:`${Math.max(0,Math.min(100,spatialInput.reserve))}%`}}/></div>
-                  <div className="reserve-labels"><span>0 ML</span><span>Protected reserve {number(spatialResult.capacity*spatialInput.reserve/100)} ML</span><span>Capacity {number(spatialResult.capacity)} ML</span></div>
+                <section className="demand-bubble-chart">
+                  <header><h3>Required vs allocated</h3><p>On the diagonal = fully covered; distance below it indicates unmet demand. Bubble size represents required demand.</p></header>
+                  <svg viewBox="0 0 420 264" role="img" aria-label={`Bubble chart of required versus allocated water. ${bubblePoints.map((item) => `${item.name}: ${number(item.value)} required, ${number(item.allocation)} allocated`).join("; ")}`}>
+                    {[0,.5,1].map((ratio) => {
+                      const x = bubblePlot.left + ratio * (bubblePlot.right - bubblePlot.left);
+                      const y = bubblePlot.bottom - ratio * (bubblePlot.bottom - bubblePlot.top);
+                      return <g key={ratio}><line x1={bubblePlot.left} x2={bubblePlot.right} y1={y} y2={y} className="bubble-grid"/><line x1={x} x2={x} y1={bubblePlot.top} y2={bubblePlot.bottom} className="bubble-grid"/><text x={x} y={bubblePlot.bottom + 14} textAnchor="middle" className="bubble-tick">{number(bubbleDomain * ratio)}</text><text x={bubblePlot.left - 8} y={y + 3} textAnchor="end" className="bubble-tick">{number(bubbleDomain * ratio)}</text></g>;
+                    })}
+                    <line x1={bubblePlot.left} y1={bubblePlot.bottom} x2={bubblePlot.right} y2={bubblePlot.top} className="bubble-equality"/>
+                    {bubblePoints.map((item) => <circle key={item.name} cx={item.x} cy={item.y} r={item.radius} fill={item.color} className="demand-bubble" stroke={expandedSpatialSector === item.name ? "#342740" : "white"} strokeWidth={expandedSpatialSector === item.name ? 3 : 2} role="button" tabIndex={0} aria-label={`${item.name}: ${number(item.value)} ML/day required, ${number(item.allocation)} allocated`} onClick={() => setExpandedSpatialSector(item.name)} onKeyDown={(event) => {if(event.key === "Enter" || event.key === " "){event.preventDefault();setExpandedSpatialSector(item.name);}}} onMouseEnter={() => setHoverSpatialSector(item.name)} onMouseLeave={() => setHoverSpatialSector(null)}>
+                      <title>{item.name}: {number(item.value)} ML/day required, {number(item.allocation)} ML/day allocated, {number(Math.max(0,item.value-item.allocation))} ML/day unmet ({Math.round(item.coverage*100)}% covered)</title>
+                    </circle>)}
+                    <text x="210" y="258" textAnchor="middle" className="bubble-axis-label">Required demand · ML/day</text>
+                    <text x="12" y="116" textAnchor="middle" className="bubble-axis-label" transform="rotate(-90 12 116)">Allocated · ML/day</text>
+                  </svg>
+                  <div className="bubble-legend">{spatialDemands.map((item) => <span key={item.name} style={{"--sector":item.color} as React.CSSProperties}><i/>{item.name}</span>)}</div>
+                  <p className={`balance-delta ${spatialResult.shortage > .05 ? "deficit" : "surplus"}`}>{spatialResult.shortage > .05 ? `${number(spatialResult.shortage)} ML/day unmet across sectors` : `${number(Math.max(0,spatialResult.allocable-spatialResult.demand))} ML/day allocable after required demand`}</p>
                 </section>
               </div>}
             </section>}
