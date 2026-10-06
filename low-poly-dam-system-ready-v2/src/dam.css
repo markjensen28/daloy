@@ -1,0 +1,141 @@
+:root {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #27323a;
+  background: #f3f6f9;
+}
+
+* { box-sizing: border-box; }
+html, body, #root { width: 100%; min-width: 320px; min-height: 100%; margin: 0; }
+body { min-height: 100vh; overflow-x: hidden; }
+button, input { font: inherit; }
+
+.app-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  gap: 16px;
+  padding: 24px;
+  background: radial-gradient(circle at 50% 38%, #fff 0 36%, #f6f8fb 65%, #edf1f5 100%);
+}
+
+.visual-wrap {
+  width: min(1120px, 96vw);
+}
+
+.dam-model {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1504 / 1046;
+  overflow: hidden;
+  isolation: isolate;
+  border-radius: 24px;
+  background: #f7f9fb;
+  box-shadow: 0 28px 80px rgba(52, 65, 78, .12);
+}
+
+.dam-base,
+.dry-basin,
+.water-copy,
+.water-copy img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.dam-base,
+.dry-basin,
+.water-copy img {
+  object-fit: fill;
+  display: block;
+  pointer-events: none;
+  user-select: none;
+}
+
+.dam-base { z-index: 1; }
+.dry-basin { z-index: 2; }
+
+.water-copy {
+  z-index: 3;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-position: center;
+  mask-position: center;
+  transition: opacity 120ms linear;
+  pointer-events: none;
+}
+
+.water-copy img {
+  position: absolute;
+}
+
+.level-readout {
+  position: absolute;
+  z-index: 8;
+  top: 18px;
+  right: 18px;
+  display: grid;
+  min-width: 150px;
+  gap: 2px;
+  padding: 11px 13px;
+  border: 1px solid rgba(255,255,255,.75);
+  border-radius: 14px;
+  background: rgba(248, 251, 253, .72);
+  box-shadow: 0 8px 30px rgba(41, 55, 68, .09);
+  backdrop-filter: blur(12px);
+}
+.level-readout span,
+.level-readout small { color: #63717b; font-size: 11px; }
+.level-readout strong { color: #1e353c; font-size: 18px; }
+
+.demo-panel {
+  width: min(720px, 92vw);
+  display: grid;
+  grid-template-columns: minmax(150px, auto) 1fr auto;
+  align-items: center;
+  gap: 18px;
+  padding: 14px 16px;
+  border: 1px solid rgba(213, 221, 228, .9);
+  border-radius: 16px;
+  background: rgba(255,255,255,.88);
+  box-shadow: 0 12px 40px rgba(50,65,78,.08);
+}
+.demo-panel > div { display: grid; gap: 2px; }
+.demo-panel span { color: #7b8993; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
+.demo-panel strong { font-size: 14px; }
+.demo-panel input { width: 100%; accent-color: #22c7d5; }
+.demo-panel output { min-width: 46px; font-variant-numeric: tabular-nums; font-weight: 700; color: #1e5961; }
+
+@media (max-width: 620px) {
+  .app-shell { padding: 12px; }
+  .dam-model { border-radius: 16px; }
+  .demo-panel { grid-template-columns: 1fr auto; }
+  .demo-panel > input { grid-column: 1 / -1; grid-row: 2; }
+  .level-readout { top: 10px; right: 10px; transform: scale(.86); transform-origin: top right; }
+}
+
+/* Syncs the fixed downstream illustration to the controlled reservoir level. */
+.downstream-dryout{
+ position:absolute;
+ pointer-events:none;
+ z-index:6;
+}
+
+/* Covers only the spillway discharge and tailwater.  It mutes the water that is
+   embedded in dam-smooth.png when the reservoir is low; the level-driven layers
+   above it then reveal smoothly as the same waterLevel increases. */
+.downstream-dryout {
+ left: 36%;
+ top: 38%;
+ width: 53%;
+ height: 50%;
+ z-index: 5;
+ /* A neutral color blend preserves the illustration's faceted terrain detail
+    while removing the cyan tailwater as the stored level approaches zero. */
+ background: rgb(190, 199, 204);
+ clip-path: polygon(17% 5%, 56% 7%, 60% 33%, 100% 53%, 100% 84%, 91% 91%, 52% 100%, 29% 76%, 10% 58%, 0 38%);
+ mix-blend-mode: saturation;
+ transition: opacity .25s ease;
+}

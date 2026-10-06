@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f7f8fa" />
+    <title>Low Poly Dam — Camera Matched Recreation</title>
+    <link rel="stylesheet" href="./src.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section id="scene" class="scene" aria-label="Camera-matched low poly hydro dam recreation">
+        <div class="background"></div>
+
+        <!-- Pixel-faithful camera-matched view.  This remains visible whenever the scene is at rest. -->
+        <img class="reference base-reference" src="./public/reference.png" alt="" draggable="false" />
+
+        <!--
+          2.5D depth layers.  Each layer re-projects the same user-provided reference,
+          but is clipped to a physical region and assigned a different Z depth.
+          At the matched camera angle all layers line up exactly; while dragging they
+          separate slightly to create parallax/depth without inventing a different design.
+        -->
+        <div class="depth-stack" id="depthStack">
+          <div class="layer back-mountains" data-depth="-22"><img src="./public/reference.png" alt="" draggable="false" /></div>
+          <div class="layer reservoir" data-depth="-8"><img src="./public/reference.png" alt="" draggable="false" /></div>
+          <div class="layer dam" data-depth="5"><img src="./public/reference.png" alt="" draggable="false" /></div>
+          <div class="layer side-rocks" data-depth="10"><img src="./public/reference.png" alt="" draggable="false" /></div>
+          <div class="layer waterfall" data-depth="17"><img src="./public/reference.png" alt="" draggable="false" /></div>
+          <div class="layer foreground" data-depth="24"><img src="./public/reference.png" alt="" draggable="false" /></div>
+        </div>
+
+        <div class="soft-shadow"></div>
+      </section>
+
+    </main>
+    <script src="./main.js"></script>
+  </body>
+</html>

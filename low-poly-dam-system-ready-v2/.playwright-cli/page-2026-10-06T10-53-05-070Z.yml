@@ -1,0 +1,11 @@
+- main [ref=e3]:
+  - generic [ref=e6]:
+    - generic [ref=e7]: Reservoir
+    - strong [ref=e8]: 0 %
+    - generic [ref=e9]: System water level
+  - complementary "Demo water-level control" [ref=e10]:
+    - generic [ref=e11]:
+      - generic [ref=e12]: System demo
+      - strong [ref=e13]: Water level control
+    - slider "Water level" [ref=e14]: "0"
+    - status [ref=e15]: 0%
