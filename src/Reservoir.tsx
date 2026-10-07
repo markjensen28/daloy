@@ -4,6 +4,7 @@ type ReservoirProps = {
   paused: boolean;
   reset: number;
   showDetails: boolean;
+  showOverview: boolean;
   onToggleDetails: () => void;
 };
 
@@ -18,7 +19,7 @@ function waterMask(level: number) {
   return `${ASSET_ROOT}/masks/water-${String(level).padStart(3, "0")}.png`;
 }
 
-export default function Reservoir({ level, protectedLevel = 0, paused, reset, showDetails, onToggleDetails }: ReservoirProps) {
+export default function Reservoir({ level, protectedLevel = 0, paused, reset, showDetails, showOverview, onToggleDetails }: ReservoirProps) {
   const actualPercent = clamp(level * 100, 0, 100);
   const protectedPercent = clamp(protectedLevel * 100, 0, 100);
   // The water surface shows actual closing storage. The reserve is explained
@@ -45,7 +46,7 @@ export default function Reservoir({ level, protectedLevel = 0, paused, reset, sh
       role="button"
       tabIndex={0}
       aria-expanded={showDetails}
-      aria-label={`Reservoir at ${Math.round(actualPercent)} percent closing storage, with ${Math.round(protectedPercent)} percent protected reserve and ${Math.round(usablePercent)} percent usable storage above reserve. Activate to ${showDetails ? "collapse" : "expand"} water controls and allocation panel.`}
+      aria-label={`Reservoir at ${Math.round(actualPercent)} percent closing storage, with ${Math.round(protectedPercent)} percent protected reserve and ${Math.round(usablePercent)} percent usable storage above reserve. Activate to ${showDetails ? "collapse" : "expand"} water controls and impact panel, and ${showOverview ? "hide" : "show"} the summary.`}
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
