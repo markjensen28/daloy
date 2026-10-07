@@ -1,4 +1,4 @@
-# Water Economics
+# DALOY - Economy Decision Sandbox
 
 A visualization-first frontend prototype for water planning in Catbalogan City, Pinabacdao, and Calbayog. React, TypeScript, Vite, React Three Fiber / Three.js, and D3 geographic projection.
 

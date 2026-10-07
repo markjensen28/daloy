@@ -1,816 +1,95 @@
-Yes. The cleanest way to approach this is to treat every establishment as a **configurable demand object** that can be placed into a municipality and then plugged into the water simulation.
+Here is a step-by-step implementation guide you can hand directly to your coding agent. It prioritizes the issues that matter most for the hackathon while preserving the existing visual identity and 3D centerpiece. The order is intentional: fix meaning and scope first, then hierarchy and styling, then polish. The critique’s main problems were Combined-scope ambiguity, Calbayog-specific results appearing in Combined mode, weak visibility of decision metrics, color semantics, small controls/text, and unclear prototype-data provenance. Pasted markdown
 
-The core idea is:
+## Water Economics UI Improvement Pass
 
-> **Place establishment → calculate its water demand → add that demand to the municipality → recalculate supply, reserve, allocation, risk, and economics → update every visualization.**
+1. **Preserve the existing product identity before editing anything.** Do not redesign the whole application. Keep the floating low-poly dam/reservoir as the central visual, keep `#9a60e0` as the primary UI accent, retain the existing navigation structure, and keep the left simulation controls and right impact panel. Do not convert the application into a conventional card-heavy dashboard. The goal is to make the existing simulation workspace clearer, lighter, and more decision-oriented.
 
-So the Development Planner is not just a 3D decoration system. It becomes another input source for your entire Water Economics Platform.
+2. **Rename “Combined MVP” to “Provincial Overview.”** Search all user-facing occurrences of `Combined MVP` and replace them with `Provincial Overview`. Internally, variable names do not need to change unless doing so improves code clarity. Under or beside the scope selector, display a subtle persistent explanation: `3 independent LGU water systems · no inter-LGU transfers`. Combined mode must never imply that Catbalogan City, Pinabacdao, and Calbayog physically share one water supply. The critique specifically identified this as the highest-priority ambiguity. Pasted markdown
 
-A good overall flow is:
+3. **Make geographic scope explicit on every important result.** Every major calculated result must indicate whether it represents `Catbalogan City`, `Pinabacdao`, `Calbayog`, or `Provincial Overview`. Do not display an unlabeled `Supply gap: 4 ML/day` if the user cannot immediately tell which geography it belongs to. In Provincial Overview, do not silently show a Calbayog-only visualization or interpretation. Either show aggregated values that are explicitly labeled as aggregates, or show separate values for each LGU. If the current 3D scene remains representative rather than aggregated, add plain text such as `Representative visualization: Calbayog` outside the model. The critique identified Calbayog-specific outputs appearing alongside Combined controls as another P1 issue. Pasted markdown
 
-```text
-Choose municipality
-      ↓
-Open Development Planner
-      ↓
-Choose establishment from Asset Library
-      ↓
-Configure establishment
-      ↓
-Drag/place 3D model on planning terrain
-      ↓
-Calculate water requirement
-      ↓
-Add demand to municipality
-      ↓
-Check if supply can meet demand
-      ↓
-Recalculate allocations + reserve + risk
-      ↓
-Update reservoir, flows, charts, economics
-      ↓
-Save as scenario
-```
-
-The first thing I would build is the **Asset Library**.
-
-Do not make it only malls. Group establishments by type.
-
-For example:
+4. **Give the center workspace four permanently visible decision metrics.** Place a compact metric strip directly above the 3D reservoir, not hidden inside expandable controls. Use exactly these primary concepts: `Source supply`, `Water demand`, `Supply gap`, and `Reservoir storage`. For example:
 
 ```text
-DEVELOPMENT ASSET LIBRARY
-
-Residential
-• Subdivision
-• Apartment / condominium
-• Socialized housing project
-
-Commercial
-• Shopping mall
-• Supermarket
-• Public market
-• Restaurant
-• Office building
-• Commercial complex
-
-Tourism
-• Hotel
-• Resort
-• Convention facility
-
-Public / Institutional
-• Hospital
-• School
-• University
-• Government office
-• Evacuation center
-
-Industrial
-• Factory
-• Processing facility
-• Warehouse
-• Ice plant
-
-Agriculture / Livelihood
-• Poultry farm
-• Piggery
-• Aquaculture facility
-• Agricultural processing facility
-
-Water Infrastructure
-• Water treatment plant
-• Reservoir
-• Pump station
-• Rainwater collection facility
+SOURCE SUPPLY       WATER DEMAND       SUPPLY GAP       RESERVOIR STORAGE
+76 ML/day           85 ML/day          -9 ML/day        64%
+-4% scenario        +6% scenario       10.6% deficit    64 / 100 ML
 ```
 
-For the hackathon, though, I would not implement all of those. Start with around **8–10 assets**.
+Keep them visually lightweight. Do not wrap each metric in a large independent card. The 3D model should remain the focal point, but the calculations should be understandable without clicking the reservoir. This directly addresses the critique that the model currently attracts more attention than the planning result. Pasted markdown
 
-A practical MVP set would be:
+5. **Separate brand color from semantic data colors.** Keep `#9a60e0` as the main interaction color for active tabs, selected states, buttons, sliders, focus states, and scenario controls. Do not recolor the whole application teal. Instead, create a semantic color system: `purple #9a60e0 = interface/selection`, `cyan/teal = water, reservoir, water flow and water quantity`, `amber/orange = warning or developing stress`, `red = severe shortage/unmet demand`, and `gray = terrain, neutral structures and inactive elements`. Sector colors may remain distinct when necessary for charts. This resolves the color-meaning issue noted in the critique without abandoning your chosen purple identity. Pasted markdown
 
-```text
-Mall
-Subdivision
-Hospital
-School
-Hotel
-Public Market
-Factory
-Poultry Farm
-Government Facility
-Evacuation Center
-```
+6. **Lighten and simplify both sidebars.** Do not remove them, but reduce their visual competition with the central simulation. Narrow them slightly, reduce excessive padding, remove unnecessary nested cards and divider lines, and favor plain grouped controls on one surface. Aim approximately for `16% left / 68% center / 16% right` on wide desktop layouts. The sidebars should behave as tools surrounding the simulation rather than becoming equal visual columns. The dam/reservoir should remain noticeably larger than either sidebar.
 
-That already demonstrates several different demand patterns.
+7. **Clean up the left control hierarchy.** Keep the tabs, but rename them to `Sources`, `Demand & Allocation`, and `Policies`. When a tab is selected, show only controls relevant to that category. Under Sources, group controls by municipality rather than mixing all source records together. Use small headings such as `CATBALOGAN CITY`, `PINABACDAO`, and `CALBAYOG`. Keep rows compact, for example `River intake — 28 ML/day`. Secondary source classifications can appear in subdued helper text rather than adding another full row. This also resolves the critique that the current Demand tab contains allocation functions without communicating that in its label. Pasted markdown
 
-The next step is to define what makes each asset unique.
-
-A mall should not use the same input form as a hospital.
-
-For example:
-
-```text
-MALL
-
-Floor area
-Employees
-Visitors/day
-Operating hours
-Restaurants/food court
-Water efficiency
-Rainwater harvesting
-```
-
-A hospital:
-
-```text
-HOSPITAL
-
-Number of beds
-Employees
-Patients/day
-Visitors/day
-Laundry facility
-Operating hours
-```
-
-A hotel:
-
-```text
-HOTEL
-
-Number of rooms
-Occupancy rate
-Employees
-Restaurant capacity
-Pool/spa
-Laundry
-```
-
-A subdivision:
-
-```text
-SUBDIVISION
-
-Housing units
-Average household size
-Occupancy rate
-Common facilities
-Landscaping demand
-```
-
-A school:
-
-```text
-SCHOOL
-
-Students
-Teachers/staff
-Operating days
-School hours
-Canteen
-```
-
-A poultry farm:
-
-```text
-POULTRY FARM
-
-Number of birds
-Cleaning frequency
-Processing activity
-Worker count
-```
-
-A factory:
-
-```text
-FACTORY
-
-Employees
-Production capacity
-Operating hours
-Process-water requirement
-Cooling requirement
-```
-
-This is why I would make each asset have a **profile schema**.
-
-Conceptually:
+8. **Make the reservoir visualization communicate actual state.** The visible 3D water surface must correspond to reservoir storage. Do not keep the water plane visually static while storage values change. Raise and lower the water mesh according to normalized storage. A simple implementation is:
 
 ```ts
-AssetTemplate {
-  id
-  name
-  category
-  modelPath
-
-  inputs[]
-  demandFormula
-
-  defaultValues
-}
+const storageRatio = clamp(currentStorage / maxStorage, 0, 1)
+const waterY = minWaterY + storageRatio * (maxWaterY - minWaterY)
 ```
 
-Then the user selects an establishment and edits its assumptions.
+Use a smooth transition when scenarios change. A nearly full reservoir should visibly approach the upper basin level; a low reservoir should expose much more of the basin. Keep the terrain very low-poly and monochrome. Do not add buildings or floating badges to the reservoir view. The dam itself should remain the only major structure.
 
-For example:
+9. **Improve the right “Allocation & Impact” panel so shortages are obvious.** Each sector row should show three things: sector name, allocated versus required demand, and percentage supplied. When everything is supplied, keep the row visually quiet. When shortages occur, make the deficit the dominant information. For example:
 
 ```text
-PROPOSED SHOPPING MALL
-
-Floor Area
-18,000 m²
-
-Employees
-350
-
-Visitors
-4,000 / day
-
-Water-efficient fixtures
-YES
-
-Rainwater harvesting
-NO
-
-Estimated water demand
-1.15 ML/day
-
-[ Place Development ]
+Agriculture
+19 / 24 ML/day
+79% supplied · 5 ML/day unmet
 ```
 
-The important thing is that the water-demand number is calculated by your own formula engine.
+Do not use purple for every progress bar. Normal water allocation can use muted cyan/teal; warning conditions use amber; critical shortage uses red. Protected sectors can still be identified through icons/text without adding badges.
 
-Gemma does not calculate it.
+10. **Strengthen “People behind the numbers.”** Replace tiny low-priority rows with two or three clearer impact indicators. Prioritize values such as `Households with unmet needs`, `Water affordability burden`, and `Estimated economic exposure`. If economic exposure is not yet calculated reliably, omit it instead of inventing a number. These should be more noticeable than tertiary technical information because the project is about Water Economics, not only hydraulic balance.
 
-For example:
+11. **Rename ambiguous “live” and AI-looking language.** Replace `Live scenario reading` with `Current scenario summary` or `Scenario interpretation`. Do not use sparkle icons or wording that suggests AI if the current result is rule-based. Once Gemma 4 E4B is actually connected, expose a separate action such as `Interpret scenario`. Gemma should receive calculated outputs and explain them; it should never generate the actual supply, demand, allocation, affordability, or forecast numbers. The critique specifically noted that the existing language could imply AI or live data where neither was actually present. Pasted markdown
+
+12. **Add one persistent data-scope disclaimer to the working view.** Do not force users to open Methodology to learn the MVP limitations. Add a subdued line near the bottom of the workspace:
 
 ```text
-Mall Demand =
-Floor Area Demand
-+ Employee Demand
-+ Visitor Demand
-+ Food Service Demand
-- Water Efficiency Savings
-- Rainwater Contribution
+Illustrative demonstration data · Single-day water balance · No live utility connection
 ```
 
-A subdivision might use:
+If needed, make `Methodology` clickable beside it. Do not call these numbers official, live, real-time, or forecast values. The critique explicitly recommended keeping these limits visible in the main workspace. Pasted markdown
+
+13. **Increase text and interactive-control sizes where they are currently too small.** Avoid 7–10 px labels. For desktop, use approximately `13–14px` for normal UI text, `11–12px minimum` for secondary text, `15–17px` for panel headings, and `22–30px` for major metric values. Main buttons and selectors should generally be around `36–42px` high on desktop. Collapse buttons and important interactive elements should no longer look like tiny icon targets. The critique specifically flagged undersized labels and controls. Pasted markdown
+
+14. **Simplify the bottom actions.** Keep `Compare`, `Reset`, and `Save scenario`, but remove an oversized floating container if one currently surrounds them. Place them in a small toolbar aligned underneath the visualization or integrate them into the scenario toolbar above it. `Save scenario` remains the primary filled-purple action. `Compare` and `Reset` remain secondary.
+
+15. **Improve Reset safety without building a full undo system.** Do not spend hackathon time implementing complete history/undo. Instead, if Reset destroys meaningful scenario edits, add a lightweight confirmation such as `Reset current scenario to baseline?`. Do not interrupt users when nothing has changed. Full undo, keyboard shortcuts, autosave recovery, and draft history are lower-priority post-MVP enhancements even though the critique identified their absence. Pasted markdown
+
+16. **Keep the 3D scene free of UI clutter.** No badges, speech bubbles, sector labels, floating metric cards, or decorative text should be positioned over the dam. The surrounding interface explains the model. The reservoir itself only needs to communicate water level, storage state, inflow/outflow where appropriate, and the physical dam. Preserve the floating-island presentation and low-poly monochrome geometry.
+
+17. **Prepare the center area for the future Development Planner without implementing it in this UI pass.** Keep the visualization mode control extensible so it can eventually become:
 
 ```text
-Subdivision Demand =
-Housing Units
-× Average Household Size
-× Per-Capita Water Requirement
+Reservoir | Water Flows | Development Planner
 ```
 
-Hospital:
+Do not yet combine the dam and establishment-placement terrain into the same 3D scene. Reservoir mode is for storage/supply. Development Planner will later use a separate low-poly municipality terrain where users can drag malls, hospitals, schools, subdivisions, hotels, factories, public markets, poultry farms, government facilities and other establishments.
+
+18. **Perform a final scope-consistency audit before considering the pass complete.** Test all four scopes: `Provincial Overview`, `Catbalogan City`, `Pinabacdao`, and `Calbayog`. For each one, change a source value and verify that only the intended system changes. Change demand and verify the visible metrics, reservoir state, allocation panel and scenario summary update consistently. Verify that Provincial Overview never implies water transfer between LGUs. Verify that no Calbayog-specific number appears as though it represents all three systems. Verify that the disclaimer stays visible and that no UI text says the data are live or official.
+
+The agent should consider the pass complete only when the interface communicates this hierarchy at a glance:
 
 ```text
-Hospital Demand =
-Beds × Bed Demand Factor
-+ Employees × Staff Factor
-+ Outpatient Demand
-+ Laundry Demand
+WHERE?
+Provincial Overview / specific LGU
+
+WHAT IS HAPPENING?
+Supply · Demand · Gap · Storage
+
+WHY?
+Sources / Demand & Allocation / Policies
+
+WHO IS AFFECTED?
+Sector allocation + households/economic impact
+
+WHAT DOES THE 3D MODEL SHOW?
+The physical consequence of the current water scenario
 ```
 
-So each establishment has a slightly different calculation model.
-
-Then comes the 3D placement.
-
-Your asset bank contains the 3D models:
-
-```text
-models/
-    mall.glb
-    hospital.glb
-    school.glb
-    hotel.glb
-    subdivision.glb
-    factory.glb
-    poultry.glb
-```
-
-You drag one from the UI.
-
-The application remembers:
-
-```ts
-selectedAsset = mall
-```
-
-When you move over the Three.js terrain, you use raycasting.
-
-Conceptually:
-
-```text
-Mouse position
-     ↓
-Three.js Raycaster
-     ↓
-Intersect terrain
-     ↓
-Get world coordinates
-     ↓
-Show ghost model
-```
-
-The ghost model can be semi-transparent purple.
-
-If placement is valid:
-
-```text
-Purple preview
-✓ Release to place
-```
-
-If placement is invalid:
-
-```text
-Red preview
-✕ Cannot place here
-```
-
-Once dropped:
-
-```ts
-{
-  id: "development-001",
-  municipality: "Catbalogan",
-  assetType: "mall",
-  position: [12.4, 0, -4.8],
-
-  inputs: {
-    floorArea: 18000,
-    employees: 350,
-    visitors: 4000
-  },
-
-  dailyDemand: 1.15
-}
-```
-
-Now it becomes part of the simulation.
-
-The next part is the most important.
-
-Each placed establishment should add water demand to a **sector**.
-
-For example:
-
-```text
-Mall
-→ Commercial
-
-Hotel
-→ Tourism / Commercial
-
-Subdivision
-→ Residential
-
-Hospital
-→ Institutional / Public Service
-
-School
-→ Institutional
-
-Factory
-→ Industrial
-
-Poultry Farm
-→ Agriculture / Livelihood
-
-Public Market
-→ Commercial
-```
-
-So your municipality demand is not just one number.
-
-You might have:
-
-```text
-Residential     24 ML/day
-Agriculture     10 ML/day
-Commercial       8 ML/day
-Institutional    5 ML/day
-Industrial       2 ML/day
-```
-
-Then place a mall:
-
-```text
-Mall
-+1.2 ML/day Commercial
-```
-
-Now:
-
-```text
-Commercial
-8.0 → 9.2 ML/day
-```
-
-Total demand increases automatically.
-
-Your simulation becomes:
-
-```text
-Total Demand =
-Residential
-+ Agriculture
-+ Commercial
-+ Institutional
-+ Industrial
-+ Development Demands
-```
-
-Then you compare that with usable supply.
-
-For example:
-
-```text
-SUPPLY
-
-Sources               55 ML/day
-NRW                   -7 ML/day
-Environmental reserve -3 ML/day
-
-Usable supply
-45 ML/day
-```
-
-Demand:
-
-```text
-Existing demand
-42 ML/day
-
-New Mall
-+1.2
-
-Hospital Expansion
-+0.8
-
-Total
-44 ML/day
-```
-
-Result:
-
-```text
-Supply:      45 ML/day
-Demand:      44 ML/day
-
-Reserve:
-1 ML/day
-```
-
-The system can say:
-
-> Demand can currently be met, but only 1 ML/day of reserve remains.
-
-Then the planner places a subdivision:
-
-```text
-Subdivision
-+2 ML/day
-```
-
-Now:
-
-```text
-Supply:       45
-Demand:       46
-
-Deficit:
-1 ML/day
-```
-
-Now your allocation system activates.
-
-That shortage should automatically affect your sector allocations.
-
-For example:
-
-```text
-Residential       100%
-Institutional     100%
-Agriculture        92%
-Commercial         88%
-Industrial         75%
-```
-
-depending on the allocation policy selected.
-
-The 3D reservoir should respond too.
-
-Suppose your reservoir contains:
-
-```text
-Stored water:
-80 ML
-```
-
-Before developments:
-
-```text
-Daily net deficit:
-0 ML
-```
-
-After developments:
-
-```text
-Daily deficit:
-1 ML
-```
-
-You now have:
-
-```text
-80 days of stored-water coverage
-```
-
-or whatever your assumptions say.
-
-As the simulation progresses:
-
-```text
-Day 1    79 ML
-Day 2    78 ML
-Day 3    77 ML
-```
-
-The 3D water level should physically decrease.
-
-That is where your centerpiece becomes very useful.
-
-You can visually connect everything.
-
-For example:
-
-```text
-Water Sources
-      │
-      ▼
- Reservoir
-      │
-      ▼
-Municipality
-      │
- ┌────┼──────────────┐
- ▼    ▼              ▼
-Res. Agriculture Commercial
-                    │
-              ┌─────┴─────┐
-              ▼           ▼
-         Existing       Mall
-```
-
-If the mall is added, the commercial branch gets thicker.
-
-In your Sankey:
-
-```text
-Reservoir
-   │
-   └════════════ Commercial
-                     │
-                     └══ Mall
-```
-
-The wedge chart changes too.
-
-Before:
-
-```text
-Residential     51%
-Agriculture     21%
-Commercial      17%
-Institutional   11%
-```
-
-After mall:
-
-```text
-Residential     49%
-Agriculture     20%
-Commercial      20%
-Institutional   11%
-```
-
-The bubble chart may change the municipality's water-stress position.
-
-The choropleth might move:
-
-```text
-LOW → MODERATE
-```
-
-So one action propagates through the entire platform.
-
-I would structure the calculation pipeline like this:
-
-```text
-PLACED DEVELOPMENT
-
-Mall
-Hospital
-Subdivision
-etc.
-        │
-        ▼
-Development Profile
-        │
-        ▼
-Water Demand Calculator
-        │
-        ▼
-Sector Demand
-        │
-        ▼
-Municipality Total Demand
-        │
-        ▼
-Supply vs Demand
-        │
-        ├──── Reservoir Storage
-        ├──── Allocation Engine
-        ├──── Water Flow Diagram
-        ├──── Sankey
-        ├──── Wedge Chart
-        ├──── Economic Impact
-        ├──── Affordability
-        └──── Shortage Risk
-```
-
-Then Gemma sits after the calculations.
-
-```text
-Simulation Results
-        ↓
-Gemma 4 E4B
-        ↓
-Interpretation
-```
-
-For example, Gemma could say:
-
-> The proposed mall and subdivision increase Catbalogan's total demand by 3.2 ML/day. Baseline supply remains sufficient, but available reserve falls from 4.5 to 1.3 ML/day. Under the moderate drought scenario, demand exceeds supply by 5.8 ML/day, primarily affecting agriculture and commercial allocations.
-
-But those numbers are calculated by your system.
-
-The AI only explains them.
-
-I would also let users test **multiple developments together**.
-
-For example:
-
-```text
-CURRENT DEVELOPMENT PLAN
-
-Shopping Mall
-+1.2 ML/day
-
-Hotel
-+0.4 ML/day
-
-Subdivision
-+2.1 ML/day
-
-Hospital
-+0.7 ML/day
-
-TOTAL NEW DEMAND
-+4.4 ML/day
-```
-
-Then the planner can toggle assets on/off.
-
-```text
-☑ Mall
-☑ Hotel
-☑ Subdivision
-☐ Hospital
-```
-
-That lets them compare:
-
-```text
-Scenario A
-Mall only
-
-Scenario B
-Mall + subdivision
-
-Scenario C
-Mall + subdivision + hospital
-```
-
-That is very useful for planning.
-
-I would also give every placed development three states:
-
-```text
-PROPOSED
-purple
-
-APPROVED
-blue/teal
-
-EXISTING
-gray
-```
-
-Then the 3D terrain can visually distinguish them.
-
-The Development Planner UI could therefore be:
-
-```text
-┌─────────────────────────────────────────────────────────────┐
-│ DEVELOPMENT PLANNER                                        │
-├───────────────┬──────────────────────────────┬──────────────┤
-│               │                              │              │
-│ ASSET LIBRARY │      3D PLANNING MAP         │ IMPACT       │
-│               │                              │              │
-│ Search...     │       ░░░ terrain ░░░       │ Supply       │
-│               │                              │ Demand       │
-│ Commercial    │          🏢                  │ Reserve      │
-│ Mall          │      proposed mall           │ Risk         │
-│ Hotel         │                              │ Cost         │
-│ Market        │                              │              │
-│               │                              │              │
-│ Residential   │                              │              │
-│ Subdivision   │                              │              │
-│ Apartment     │                              │              │
-│               │                              │              │
-│ Public        │                              │              │
-│ Hospital      │                              │              │
-│ School        │                              │              │
-│               │                              │              │
-└───────────────┴──────────────────────────────┴──────────────┘
-```
-
-One design choice I strongly recommend:
-
-Do not make the establishment model itself extremely detailed.
-
-Your system is analytical.
-
-Use simple low-poly models.
-
-For example:
-
-```text
-Mall
-simple 2–3 storey block
-
-Hospital
-block + cross silhouette
-
-School
-long low building
-
-Subdivision
-cluster of small houses
-
-Factory
-rectangular shed + chimney
-
-Hotel
-simple tower
-```
-
-This will fit much better with your monochrome planning-map style.
-
-For implementation, I would build it in this order:
-
-1. Create asset templates.
-2. Create editable forms.
-3. Create the demand formulas.
-4. Make the municipality calculation accept `developmentDemand`.
-5. Connect that to the existing reservoir/supply simulation.
-6. Add Three.js drag-and-drop placement.
-7. Update water-flow visualizations.
-8. Add scenario saving/comparison.
-9. Add Gemma interpretation last.
-
-Don't start with drag-and-drop first.
-
-The most important thing is that this works:
-
-```text
-Add Hospital
-        ↓
-+0.8 ML/day
-        ↓
-Demand changes
-        ↓
-Supply balance changes
-```
-
-Once the logic works, then attach the 3D placement interface to it.
-
-That way, even if the 3D interaction has bugs during the hackathon, the **actual simulation engine is already solid**.
+Do **not** spend this pass on new charts, forecasting, Development Planner drag-and-drop, additional AI functionality, keyboard shortcuts, complex undo history, or major architectural rewrites. The objective of this pass is to make the existing Water Economics simulation **unambiguous, readable, and presentation-ready** before adding more features.

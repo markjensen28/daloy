@@ -1,5 +1,5 @@
-/* Shared Water Economics sandbox palette. This file is intentionally last in the cascade. */
-:root{--paper:#FAF9F7;--deep:#292331;--accent:#9a60e0;--water:#cdb4ee;--divider:#E7E3E9}
+/* Shared DALOY sandbox palette. This file is intentionally last in the cascade. */
+:root{--paper:#FAF9F7;--deep:#292331;--accent:#9a60e0;--water:#42b7b4;--divider:#E7E3E9}
 body{background:var(--paper);color:var(--deep)}
 main:not(.simulation-main),.document-panel,.spatial-detail{background:var(--paper);color:var(--deep)}
 .topbar,.control-panel,.simulation-panel,.inspector,.map-card,.flow-card,.snapshot-card,.document-panel,.spatial-detail,.comparison-card{background:var(--paper);border-color:var(--divider)}
@@ -650,3 +650,147 @@ body[data-appearance="night"]{background-image:linear-gradient(rgba(25,22,30,.84
 @media(max-width:820px){.development-overlay{padding:0}.development-planner{height:100dvh;border:0;border-radius:0;overflow-y:auto}.development-planner-head{position:sticky;top:0;z-index:5;min-height:70px;padding:10px 14px}.development-planner-head h2{font-size:19px}.development-planner-head p{font-size:10px}.development-save{font-size:0;width:40px;padding:0}.development-save svg{width:16px}.development-planner-body{display:flex;flex:0 0 auto;flex-direction:column;min-height:auto;overflow:visible}.development-library,.development-inspector{flex:0 0 auto;min-height:auto;overflow:visible;border:0;border-bottom:1px solid #e4e0e6}.development-library-list{display:flex;gap:15px;overflow:auto}.development-library-list>div{min-width:150px}.development-inspector{order:2}.development-workspace{order:3;flex:0 0 auto;min-height:640px}.development-fields{grid-template-columns:repeat(2,minmax(0,1fr))}.development-scene{flex:0 0 auto;height:380px;min-height:380px}}
 @media(max-width:480px){.planner-launch{font-size:0;min-width:36px;padding:0 8px}.planner-launch svg{width:17px}.planner-launch span{font-size:10px}.development-planner-head p{max-width:27ch}.development-fields{grid-template-columns:1fr 1fr}.development-map-head{align-items:flex-start}.development-map-head p{max-width:30ch}.development-plan-count{font-size:10px}.development-placed-list{max-height:none}.development-scene{min-height:340px}}
 @media(prefers-reduced-motion:reduce){.planner-launch,.development-asset,.development-save,.development-place-button{transition:none}}
+.simulation-main .sector-row.met strong{color:var(--status-met)}.simulation-main .sector-row.warning strong{color:var(--status-warning)}.simulation-main .sector-row.critical strong{color:var(--status-critical)}.simulation-main .sector-row.warning .coverage-track i{background:var(--status-warning)!important}.simulation-main .sector-row.critical .coverage-track i{background:var(--status-critical)!important}
+@media(max-width:900px) and (min-width:761px){.simulation-main .context-save{display:inline-flex}.simulation-main .scope-explanation{font-size:9px}}
+
+/* Compact scope copy and keep the scenario figures outside the 3D artwork. */
+:root{--status-met:#168b82;--status-warning:#a96812;--status-critical:#b43e4b;--terrain:#8b9291}
+.simulation-main :focus-visible{outline-color:var(--accent)}
+.simulation-main .workspace{height:clamp(660px,calc(100vh - 156px),820px);margin-top:72px}
+.simulation-main .simulation-panel{grid-template-rows:34px auto minmax(0,1fr);overflow:hidden}
+.simulation-main .model-heading{display:flex;grid-row:1;min-height:34px;padding:0 14px 5px}
+.simulation-main .model-heading>div{gap:7px;min-width:0}.simulation-main .model-heading h2{font-size:12px}
+.simulation-main .representative-label{color:#635a6a;font-size:10px;white-space:nowrap}
+.simulation-main .decision-metrics{grid-row:2;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));width:min(940px,calc(100% - 320px));margin:0 auto 7px;padding:8px 4px 9px;border-bottom:1px solid var(--divider);background:rgba(250,249,247,.92);color:var(--deep)}
+.simulation-main .decision-metrics>div{min-width:0;padding:0 12px;border-left:1px solid var(--divider)}.simulation-main .decision-metrics>div:first-child{border-left:0}
+.simulation-main .decision-metrics span{display:block;color:#706779;font-size:10px}
+.simulation-main .decision-metrics strong{display:block;margin-top:2px;color:var(--deep);font-size:20px;font-weight:650;letter-spacing:-.035em;white-space:nowrap}
+.simulation-main .decision-metrics strong small{font-size:10px;font-weight:500;letter-spacing:0;color:#706779}
+.simulation-main .decision-metrics em{display:block;margin-top:2px;color:#706779;font-size:9px;font-style:normal;line-height:1.35}
+.simulation-main .decision-metrics .warning strong{color:var(--status-warning)}.simulation-main .model-stage{grid-row:3;min-height:0}
+.simulation-main .scope-explanation{position:absolute;top:calc(100% + 4px);left:9px;margin:0;color:#635a6a;font-size:9px;white-space:nowrap}
+.simulation-main .context-cluster:first-child{position:static}
+.simulation-main .simulation-disclaimer{display:flex;align-items:center;justify-content:center;gap:7px;min-height:25px;margin:5px 0 0;color:#61596a;font-size:10px}
+.simulation-main .simulation-disclaimer .text-button{font-size:10px}
+.simulation-main .context-compare{display:inline-flex;align-items:center;gap:5px;min-height:36px;padding:7px 10px;border:1px solid var(--divider);border-radius:7px;background:var(--paper);color:var(--deep);font-size:11px}
+.simulation-main .context-compare:hover{background:var(--divider)}.simulation-main .context-save{min-height:38px;padding:8px 13px;border-radius:7px;font-size:11px;font-weight:650}.simulation-main .context-reset{min-height:36px;min-width:36px}
+.simulation-main .coverage-track i{background:var(--status,var(--sector))!important}
+.simulation-main .sector-row.met strong{color:var(--status-met)}.simulation-main .sector-row.warning strong{color:var(--status-warning)}.simulation-main .sector-row.critical strong{color:var(--status-critical)}
+.simulation-main .sector-row.warning .coverage-track i{background:var(--status-warning)!important}.simulation-main .sector-row.critical .coverage-track i{background:var(--status-critical)!important}
+.simulation-main .scope-tabs button.selected{background:#eee4f8;color:#503370}
+@media(max-width:1100px) and (min-width:761px){.simulation-main .scope-explanation{font-size:8px}.simulation-main .decision-metrics{width:calc(100% - 260px)}.simulation-main .decision-metrics>div{padding:0 7px}.simulation-main .decision-metrics strong{font-size:17px}}
+@media(max-width:900px) and (min-width:761px){.simulation-main .context-save{display:inline-flex}}
+@media(max-width:760px){.simulation-main .workspace,.simulation-main .workspace.controls-open,.simulation-main .workspace.impact-open{height:auto;min-height:650px;margin-top:0}.simulation-main .simulation-panel{position:relative;inset:auto;display:grid;grid-template-rows:auto auto minmax(440px,60vh);height:auto;min-height:0;padding-top:58px}.simulation-main .model-heading{grid-row:1;min-height:35px;align-items:flex-start;padding:0 4px 7px}.simulation-main .model-heading>div{flex-wrap:wrap}.simulation-main .model-heading h2{font-size:11px}.simulation-main .representative-label{font-size:9px}.simulation-main .decision-metrics{grid-row:2;width:100%;grid-template-columns:repeat(2,minmax(0,1fr));gap:0;margin-bottom:4px;padding:4px 0 7px}.simulation-main .decision-metrics>div{padding:5px 9px;border-left:0}.simulation-main .decision-metrics>div:nth-child(even){border-left:1px solid var(--divider)}.simulation-main .decision-metrics>div:nth-child(n+3){border-top:1px solid var(--divider)}.simulation-main .decision-metrics strong{font-size:18px}.simulation-main .model-stage{grid-row:3;min-height:440px}.simulation-main .simulation-disclaimer{flex-wrap:wrap;text-align:center;font-size:9px;margin:7px 0 15px}.simulation-main .scope-explanation{position:static;white-space:normal;margin:5px 2px 0;font-size:9px}.simulation-main .context-actions{flex-wrap:wrap;justify-content:flex-end}.simulation-main .context-save{display:inline-flex}.simulation-main .context-compare{min-height:40px}.simulation-main .dam-system-artboard{width:min(100%,620px)}}
+@media(max-width:430px){.simulation-main .scope-tabs button{font-size:10px}.simulation-main .context-actions{gap:3px}.simulation-main .context-save{font-size:10px;padding:7px}.simulation-main .decision-metrics em{font-size:8px}}
+.simulation-main .workspace{height:clamp(610px,calc(100vh - 190px),760px)}
+.simulation-main .model-heading{justify-content:center}
+.simulation-main .model-heading>div{justify-content:center}
+@media(max-width:760px){.simulation-main .workspace{height:auto}}
+
+/* Type scale tuned for dense planning labels and high-resolution screens. */
+.brand{font-size:22px;letter-spacing:-.35px;line-height:1.05}
+.brand small{font-size:11px;letter-spacing:.25px;line-height:1.3;margin-top:4px}
+.simulation-main .model-heading h2{font-size:14px}
+.simulation-main .representative-label{font-size:12px}
+.simulation-main .subtle-badge{font-size:10px;padding:5px 7px}
+.simulation-main .decision-metrics span{font-size:12px}
+.simulation-main .decision-metrics strong{font-size:22px}
+.simulation-main .decision-metrics strong small,.simulation-main .decision-metrics em{font-size:11px}
+.simulation-main .scope-explanation{font-size:11px}
+.simulation-main .panel-heading h2{font-size:14px}
+.simulation-main .control-tabs button{font-size:12px;line-height:1.3}
+.simulation-main .scope-note,.simulation-main .panel-footer,.simulation-main .help-text{font-size:12px;line-height:1.5}
+.simulation-main .mini-heading h3{font-size:13px}
+.simulation-main .mini-heading>span:last-child,.simulation-main .slider-control>span,.simulation-main .slider-control strong{font-size:12px}
+.simulation-main .range-labels{font-size:11px}
+.simulation-main .tag{font-size:11px;padding:4px 7px}
+.simulation-main .source-provider{font-size:11px}
+.simulation-main .source-provider-copy b{font-size:11px}
+.simulation-main .source-provider-copy small,.simulation-main .source-row small{font-size:11px}
+.simulation-main .source-row>span{font-size:12px}
+.simulation-main .source-row input{font-size:12px}
+.simulation-main .drought-presets button{font-size:12px;padding:8px 7px}
+.simulation-main .inspector-subheading{font-size:12px}
+.simulation-main .inspector-subheading small{font-size:11px}
+.simulation-main .sector-row>div:first-child{font-size:12px}
+.simulation-main .sector-row strong{font-size:11px;max-width:130px}
+.simulation-main .sector-row>small{font-size:11px;line-height:1.4}
+.simulation-main .impact-summary-heading strong{font-size:12px}
+.simulation-main .impact-stat-grid span{font-size:11px;line-height:1.35}
+.simulation-main .impact-summary p{font-size:11px;line-height:1.45}
+.simulation-main .planning-live-stats span{font-size:10px}
+.simulation-main .spatial-section p,.simulation-main .spatial-section small{font-size:max(11px,1em)}
+.simulation-main .spatial-section .planning-model-head p,.simulation-main .spatial-section .demand-drawer-head p,.simulation-main .spatial-section .nrw-method-note{font-size:12px;line-height:1.5}
+.simulation-main .spatial-section .map-key,.simulation-main .spatial-section .map-legend{font-size:11px}
+.simulation-main .spatial-section .profile-economic-note small,.simulation-main .spatial-section .spatial-detail small{font-size:11px}
+.simulation-main .simulation-disclaimer{font-size:11px}
+.simulation-main .simulation-disclaimer .text-button{font-size:11px}
+.simulation-main .daloy-panel p,.simulation-main .daloy-panel small,.simulation-main .daloy-questions button{font-size:12px;line-height:1.45}
+.document-panel p,.method-grid p{font-size:max(12px,1em);line-height:1.6}
+@media(max-width:760px){
+ .brand{font-size:18px}.brand small{font-size:10px}
+ .simulation-main .decision-metrics span{font-size:12px}
+ .simulation-main .decision-metrics em{font-size:10px}
+ .simulation-main .control-tabs button,.simulation-main .slider-control>span,.simulation-main .help-text{font-size:12px}
+ .simulation-main .sector-row>div:first-child{font-size:12px}
+ .simulation-main .sector-row>small,.simulation-main .impact-stat-grid span{font-size:11px}
+ .simulation-main .planning-live-stats span{font-size:10px}
+}
+.simulation-main .spatial-section :where(p,small,span,label,dt,dd){font-size:11px!important;line-height:1.45}
+.simulation-main .spatial-section .explore-focus strong{font-size:20px!important}
+.simulation-main .spatial-section h3{font-size:17px}
+.simulation-main .spatial-section .bubble-axis-label,.simulation-main .spatial-section .chart-legend{font-size:11px}
+.simulation-main .spatial-section .nrw-method-note{font-size:12px!important;line-height:1.55}
+.simulation-main .spatial-section .development-config p,.simulation-main .spatial-section .development-caveat{font-size:12px!important;line-height:1.5}
+
+/* Final readability floor for dense controls, scenario notes, and spatial detail. */
+.simulation-main .scope-tabs button,.simulation-main .simulation-view-tabs button,.simulation-main .scenario-select,.simulation-main .scenario-select select{font-size:13px}
+.simulation-main .context-actions button,.simulation-main .context-compare,.simulation-main .context-save{font-size:12px}
+.simulation-main .decision-metrics span,.simulation-main .decision-metrics em,.simulation-main .decision-metrics strong small{font-size:12px}
+.simulation-main .decision-metrics strong{font-size:23px}
+.simulation-main .scope-explanation,.simulation-main .simulation-disclaimer,.simulation-main .simulation-disclaimer .text-button{font-size:12px}
+.simulation-main .subtle-badge{font-size:11px}
+.simulation-main .control-tabs button,.simulation-main .scope-note,.simulation-main .panel-footer,.simulation-main .help-text,.simulation-main .range-labels,.simulation-main .tag{font-size:12px}
+.simulation-main .mini-heading h3,.simulation-main .mini-heading>span:last-child,.simulation-main .slider-control>span,.simulation-main .slider-control strong{font-size:13px}
+.simulation-main .source-provider,.simulation-main .source-provider-copy b,.simulation-main .source-provider-copy small,.simulation-main .source-row>span,.simulation-main .source-row small,.simulation-main .source-row input{font-size:12px}
+.simulation-main .drought-presets button,.simulation-main .inspector-subheading,.simulation-main .inspector-subheading small{font-size:12px}
+.simulation-main .sector-row>div:first-child,.simulation-main .sector-row strong,.simulation-main .sector-row>small{font-size:12px;line-height:1.45}
+.simulation-main .impact-summary-heading strong,.simulation-main .impact-stat-grid span,.simulation-main .impact-summary p{font-size:12px;line-height:1.45}
+.simulation-main .planning-live-stats span{font-size:12px}
+.simulation-main .spatial-section :where(p,small,span,label,dt,dd){font-size:12px!important;line-height:1.5}
+.simulation-main .spatial-section h3{font-size:18px}
+.simulation-main .spatial-section .bubble-axis-label,.simulation-main .spatial-section .chart-legend,.simulation-main .spatial-section .map-key,.simulation-main .spatial-section .map-legend{font-size:12px}
+.simulation-main .spatial-section .nrw-method-note,.simulation-main .spatial-section .development-config p,.simulation-main .spatial-section .development-caveat{font-size:13px!important;line-height:1.55}
+.simulation-main .daloy-panel p,.simulation-main .daloy-panel small,.simulation-main .daloy-questions button{font-size:13px;line-height:1.5}
+.simulation-main .daloy-launcher{font-size:13px}
+.document-panel p,.method-grid p{font-size:13px;line-height:1.65}
+@media(max-width:760px){
+ .simulation-main .scope-tabs button,.simulation-main .simulation-view-tabs button{font-size:12px}
+ .simulation-main .decision-metrics span,.simulation-main .decision-metrics em{font-size:11px}
+ .simulation-main .help-text,.simulation-main .slider-control>span,.simulation-main .control-tabs button{font-size:12px}
+ .simulation-main .spatial-section :where(p,small,span,label,dt,dd){font-size:12px!important}
+ .simulation-main .daloy-panel p,.simulation-main .daloy-questions button{font-size:12px}
+}
+.simulation-main .impact-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.simulation-main .impact-stat-grid>div:last-child{grid-column:1/-1}
+@media(max-width:760px){.brand small{font-size:11px}}
+.simulation-main .daloy-panel :where(span,small,dt,dd){font-size:12px;line-height:1.5}
+.simulation-main .daloy-panel>header>span{font-size:13px}
+.simulation-main .daloy-panel>header small{font-size:11px}
+.simulation-main .daloy-answer>span{font-size:12px}
+/* Second readability pass: enlarge supporting copy across the dense planning UI. */
+.simulation-main .scope-tabs button,.simulation-main .simulation-view-tabs button,.simulation-main .context-actions button,.simulation-main .context-compare,.simulation-main .context-save,.simulation-main .scenario-select,.simulation-main .scenario-select select{font-size:14px}
+.simulation-main .scope-explanation,.simulation-main .simulation-disclaimer,.simulation-main .simulation-disclaimer .text-button,.simulation-main .control-tabs button,.simulation-main .scope-note,.simulation-main .panel-footer,.simulation-main .help-text,.simulation-main .range-labels,.simulation-main .tag{font-size:13px}
+.simulation-main .mini-heading h3,.simulation-main .mini-heading>span:last-child,.simulation-main .slider-control>span,.simulation-main .slider-control strong,.simulation-main .source-provider,.simulation-main .source-provider-copy b,.simulation-main .source-provider-copy small,.simulation-main .source-row>span,.simulation-main .source-row small,.simulation-main .source-row input,.simulation-main .drought-presets button,.simulation-main .inspector-subheading,.simulation-main .inspector-subheading small,.simulation-main .sector-row>div:first-child,.simulation-main .sector-row strong,.simulation-main .sector-row>small,.simulation-main .impact-summary-heading strong,.simulation-main .impact-stat-grid span,.simulation-main .impact-summary p{font-size:13px;line-height:1.5}
+.simulation-main .spatial-section :where(p,small,span,label,dt,dd){font-size:13px!important;line-height:1.55}
+.simulation-main .spatial-section .map-key,.simulation-main .spatial-section .map-legend,.simulation-main .spatial-section .bubble-axis-label,.simulation-main .spatial-section .chart-legend{font-size:13px}
+.simulation-main .spatial-section .nrw-method-note,.simulation-main .spatial-section .development-config p,.simulation-main .spatial-section .development-caveat{font-size:14px!important}
+.simulation-main .daloy-panel p,.simulation-main .daloy-panel small,.simulation-main .daloy-panel :where(span,dt,dd),.simulation-main .daloy-questions button,.simulation-main .daloy-answer>span{font-size:14px;line-height:1.55}
+.simulation-main .daloy-panel>header small{font-size:12px}
+.simulation-main .planning-live-stats span{font-size:13px}
+@media(max-width:760px){
+ .simulation-main .scope-tabs button,.simulation-main .simulation-view-tabs button,.simulation-main .context-actions button{font-size:13px}
+ .simulation-main .decision-metrics span,.simulation-main .decision-metrics em{font-size:12px}
+ .simulation-main .spatial-section :where(p,small,span,label,dt,dd){font-size:13px!important}
+ .simulation-main .daloy-panel p,.simulation-main .daloy-panel :where(span,dt,dd),.simulation-main .daloy-questions button{font-size:13px}
+}

@@ -21,11 +21,10 @@ function waterMask(level: number) {
 export default function Reservoir({ level, protectedLevel = 0, paused, reset, showDetails, onToggleDetails }: ReservoirProps) {
   const actualPercent = clamp(level * 100, 0, 100);
   const protectedPercent = clamp(protectedLevel * 100, 0, 100);
-  // The scene's visible water communicates allocable storage above the
-  // protected reserve, while the metrics continue to report actual storage.
-  const percent = protectedPercent >= 100
-    ? 0
-    : clamp((actualPercent - protectedPercent) / (100 - protectedPercent) * 100, 0, 100);
+  // The water surface shows actual closing storage. The reserve is explained
+  // in the adjacent metrics instead of being removed from the visual level.
+  const percent = actualPercent;
+  const usablePercent = protectedPercent >= 100 ? 0 : clamp((actualPercent - protectedPercent) / (100 - protectedPercent) * 100, 0, 100);
   const low = Math.floor(percent / 5) * 5;
   const high = Math.min(100, low + 5);
   const mix = high === low ? 0 : (percent - low) / (high - low);
@@ -41,12 +40,12 @@ export default function Reservoir({ level, protectedLevel = 0, paused, reset, sh
     <section
       className={`dam-system-model${paused ? " is-paused" : ""}${percent <= 0.5 ? " is-empty" : ""}`}
       data-level={Math.round(actualPercent)}
-      data-usable-level={Math.round(percent)}
+      data-usable-level={Math.round(usablePercent)}
       data-reset={reset}
       role="button"
       tabIndex={0}
       aria-expanded={showDetails}
-      aria-label={`Reservoir at ${Math.round(actualPercent)} percent closing storage, with ${Math.round(protectedPercent)} percent protected reserve and ${Math.round(percent)} percent usable storage above reserve. Activate to ${showDetails ? "hide" : "show"} details.`}
+      aria-label={`Reservoir at ${Math.round(actualPercent)} percent closing storage, with ${Math.round(protectedPercent)} percent protected reserve and ${Math.round(usablePercent)} percent usable storage above reserve. Activate to ${showDetails ? "collapse" : "expand"} water controls and allocation panel.`}
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();

@@ -18,6 +18,7 @@ const palette = {
 
 type SectorName = string;
 type SectorDatum = { name: SectorName; value: number; allocation: number; coverage: number; color: string };
+type Terrain = { kind: "coast" | "upland" | "river-valley"; ground: string; ridge: string[]; heights: number[]; tree: string };
 const sectorRoles: Record<SectorName, string> = {
   Households: "Homes and residential demand",
   "Agriculture + fisheries": "Farm plots and fisheries",
@@ -39,22 +40,29 @@ type Layout = {
   clinic: [number, number];
   streetZ: number;
   streetX: number;
+  genericCenter: [number, number];
+  terrain: Terrain;
 };
 
 const layouts: Record<string, Layout> = {
   catbalogan: {
-    reservoir: [-4.15, -3.25], treatment: [-.2, -2.25], homes: [-3.9, .1], farm: [4.65, -2.9], homeSpacing: .88,
-    school: [3.2, -2.15], government: [1.55, 1.45], commercial: [4.65, .8], clinic: [3.75, 3.15], streetZ: .15, streetX: 1.2,
+    reservoir: [-5.1, -3.6], treatment: [-.5, -2.45], homes: [-4.5, .25], farm: [5.15, -3.15], homeSpacing: 1.02,
+    school: [4.0, -2.4], government: [1.35, 1.65], commercial: [5.0, .85], clinic: [3.65, 3.3], streetZ: .15, streetX: 1.35, genericCenter: [-.1, -.1],
+    terrain: { kind: "coast", ground: "#eee8d9", ridge: ["#849b7e", "#91a88a", "#7d9678"], heights: [1.05,1.45,1.1,1.7,1.25,1.55,1.05,1.35], tree: "#63886b" },
   },
   pinabacdao: {
-    reservoir: [-4.8, -2.75], treatment: [-1.45, -1.65], homes: [-4.35, .85], farm: [4.55, -2.65], homeSpacing: .72,
-    school: [3.5, -1.55], government: [.75, 1.15], commercial: [4.6, 2.1], clinic: [2.6, 3.05], streetZ: -.35, streetX: .45,
+    reservoir: [-5.4, -2.6], treatment: [-1.9, -1.55], homes: [-4.75, 1.0], farm: [5.0, -3.3], homeSpacing: .92,
+    school: [3.8, -1.65], government: [.35, 1.55], commercial: [5.15, 2.2], clinic: [2.55, 3.5], streetZ: -.45, streetX: .2, genericCenter: [.75, -.2],
+    terrain: { kind: "upland", ground: "#e5e8d9", ridge: ["#7d9876", "#91a77d", "#718a70"], heights: [2.0,3.0,2.5,3.6,2.9,3.8,2.6,3.25], tree: "#4e7958" },
   },
   calbayog: {
-    reservoir: [-4.65, -3.2], treatment: [-.75, -2.55], homes: [-4.45, .95], farm: [4.45, -2.8], homeSpacing: .94,
-    school: [2.7, -2.55], government: [1.35, 1.15], commercial: [4.75, .05], clinic: [3.6, 3.2], streetZ: .55, streetX: 1.75,
+    reservoir: [-4.8, -3.8], treatment: [-.8, -2.8], homes: [-4.8, 1.0], farm: [5.25, -3.3], homeSpacing: 1.08,
+    school: [3.25, -2.7], government: [1.15, 1.6], commercial: [5.15, .15], clinic: [3.5, 3.4], streetZ: .6, streetX: 1.85, genericCenter: [-.1, .2],
+    terrain: { kind: "river-valley", ground: "#e5e6df", ridge: ["#829a83", "#748f78", "#91a28a"], heights: [2.5,3.4,2.8,3.9,3.1,3.6,2.75,3.3], tree: "#4f8065" },
   },
 };
+
+const MODEL_SCALE = 1.32;
 
 function Box({ position, size, color = palette.model, rotation, highlighted = false, onClick, onHover }: {
   position: [number, number, number]; size: [number, number, number]; color?: string;
@@ -83,10 +91,10 @@ function Building({ x, z, h = 1.1, color = palette.model, highlighted = false, o
   </group>;
 }
 
-function Tree({ x, z, s = 1 }: { x: number; z: number; s?: number }) {
+function Tree({ x, z, s = 1, color = "#63886b" }: { x: number; z: number; s?: number; color?: string }) {
   return <group position={[x, 0, z]} scale={s}>
     <mesh position={[0, .2, 0]}><cylinderGeometry args={[.035, .045, .4, 6]} /><meshStandardMaterial color="#bcbcb7" /></mesh>
-    <mesh position={[0, .58, 0]} castShadow><coneGeometry args={[.22, .68, 7]} /><meshStandardMaterial color="#d1d1cd" flatShading /></mesh>
+    <mesh position={[0, .58, 0]} castShadow><coneGeometry args={[.22, .68, 7]} /><meshStandardMaterial color={color} flatShading /></mesh>
   </group>;
 }
 
@@ -95,7 +103,7 @@ function Camera() {
   useEffect(() => {
     if (camera instanceof THREE.OrthographicCamera) {
       camera.position.set(10, 10, 12);
-      camera.zoom = Math.min(size.width / 16, size.height / 10.2);
+      camera.zoom = Math.min(size.width / 20, size.height / 13.4);
       camera.updateProjectionMatrix();
     }
   }, [camera, size.height, size.width]);
@@ -152,7 +160,7 @@ function DevelopmentStructure({ templateId, x, z, status = "proposed", ghost = f
 }
 
 function canPlaceDevelopment(x:number,z:number,layout:Layout,developments:Development[]) {
-  if(Math.abs(x)>5.7 || Math.abs(z)>3.75) return false;
+  if(Math.abs(x)>6.15 || Math.abs(z)>4.05) return false;
   if(Math.hypot(x-layout.reservoir[0],z-layout.reservoir[1])<1.7) return false;
   return developments.every(item=>Math.hypot(x-item.position[0],z-item.position[1])>1.15);
 }
@@ -194,29 +202,48 @@ function Model({ layout, sectors, focusedSector, onSectorHover, onSelectSector, 
     z: layout.homes[1] + Math.floor(i / 7) * .82,
   })), [layout]);
   const generic = useMemo(() => Array.from({ length: 19 }, (_, i) => ({
-    x: -2.5 + (i % 6) * 1.05,
-    z: -2.75 + Math.floor(i / 6) * .75,
+    x: layout.genericCenter[0] - 2.65 + (i % 5) * 1.3,
+    z: layout.genericCenter[1] - 1.45 + Math.floor(i / 5) * .95,
     h: .45 + (i % 3) * .18,
-  })), []);
-  const trees = useMemo(() => Array.from({ length: 28 }, (_, i) => ({
-    x: -6 + (i * 2.13) % 12,
-    z: -4.1 + (i * 1.71) % 8.1,
-    s: .72 + (i % 4) * .12,
-  })), []);
+  })), [layout]);
+  const trees = useMemo(() => Array.from({ length: layout.terrain.kind === "coast" ? 22 : 34 }, (_, i) => ({
+    x: -7.1 + (i * (layout.terrain.kind === "upland" ? 2.37 : 2.13)) % 14.2,
+    z: -4.65 + (i * (layout.terrain.kind === "river-valley" ? 1.97 : 1.71)) % 9.3,
+    s: .78 + (i % 5) * .13,
+    color: layout.terrain.tree,
+  })), [layout]);
   return <>
     <Camera />
     <color attach="background" args={["#f5f5f2"]} />
     <ambientLight intensity={2.2} />
     <directionalLight position={[-6, 12, 7]} intensity={2.8} castShadow shadow-mapSize={[1024, 1024]} />
-    <group position={[0, -.85, 0]}>
-      <Box position={[0, -.22, 0]} size={[13.4, .42, 9.5]} color="#dededb" />
-      <Box position={[0, .01, 0]} size={[13.2, .08, 9.3]} color="#efefec" />
+    <group position={[0, -.85, 0]} scale={[MODEL_SCALE, 1, MODEL_SCALE]}>
+      <Box position={[0, -.22, 0]} size={[13.4, .42, 9.5]} color="#d6d9d4" />
+      <Box position={[0, .01, 0]} size={[13.2, .08, 9.3]} color={layout.terrain.ground} />
 
-      {/* Low-poly mountain backdrop */}
-      {[-5.8,-4.7,-3.6,-2.4,-1.1,.2,1.5,2.8,4.1,5.4].map((x, i) => <mesh key={x} position={[x, .75 + (i % 3) * .18, -4.05]} castShadow>
-        <coneGeometry args={[1.25 + (i % 2) * .3, 1.8 + (i % 3) * .42, 5]} />
-        <meshStandardMaterial color={i % 2 ? "#d8d8d5" : "#e1e1de"} flatShading />
-      </mesh>)}
+      {/* Each municipality gets a different illustrative landform and palette. */}
+      {layout.terrain.heights.map((height, i) => {
+        const x = -5.2 + i * (10.4 / (layout.terrain.heights.length - 1));
+        const radius = layout.terrain.kind === "coast" ? .98 + (i % 3) * .08 : .96 + (i % 2) * .18;
+        return <mesh key={i} position={[x, height / 2 - .08, -4.05 - (i % 2) * .2]} castShadow>
+        <coneGeometry args={[radius, height, layout.terrain.kind === "upland" ? 6 : 5]} />
+        <meshStandardMaterial color={layout.terrain.ridge[i % layout.terrain.ridge.length]} flatShading />
+        </mesh>;
+      })}
+
+      {layout.terrain.kind === "coast" && <>
+        <mesh position={[-6.25,.055,-.6]} rotation={[-Math.PI/2,0,.15]}><circleGeometry args={[1.55,18]} /><meshStandardMaterial color="#65c8cf" roughness={.24} /></mesh>
+        <mesh position={[-5.55,.065,-.15]} rotation={[-Math.PI/2,0,.15]} scale={[1.15,.45,1]}><circleGeometry args={[1.2,18]} /><meshStandardMaterial color="#d9c99f" /></mesh>
+      </>}
+      {layout.terrain.kind === "upland" && <>
+        <Line points={[[-5.8,.08,-3.35],[-4.1,.08,-2.1],[-2.4,.08,-1.1],[-.3,.08,.3],[1.3,.08,1.8],[3.3,.08,3.65]]} color="#59bfc0" lineWidth={7} />
+        {[-.7,-.25,.2,.65].map((z,i)=><Box key={z} position={[5.0,.09,z-2.8]} size={[2.6,.045,.1]} color={i%2?"#93aa72":"#a6b87e"} rotation={[0,-.22,0]} />)}
+      </>}
+      {layout.terrain.kind === "river-valley" && <>
+        <Line points={[[5.7,.07,-4.1],[4.7,.07,-2.75],[5.35,.07,-1.25],[3.8,.07,.05],[4.2,.07,1.75],[2.65,.07,3.65]]} color="#59c9d0" lineWidth={8} />
+        <mesh position={[4.65,.08,-2.75]} rotation={[-Math.PI/2,0,.25]}><circleGeometry args={[1.05,14]} /><meshStandardMaterial color="#62cbd0" roughness={.2} /></mesh>
+        <mesh position={[3.6,.08,.1]} rotation={[-Math.PI/2,0,-.3]}><circleGeometry args={[.82,14]} /><meshStandardMaterial color="#62cbd0" roughness={.2} /></mesh>
+      </>}
 
       {/* Reservoir carved into terrain */}
       <mesh position={[layout.reservoir[0], .1, layout.reservoir[1]]} rotation={[-Math.PI / 2, 0, .12]}>
@@ -290,10 +317,10 @@ function Model({ layout, sectors, focusedSector, onSectorHover, onSelectSector, 
         </div>
       </Html>}
     </group>
-    {developments.map(item=><DevelopmentStructure key={item.id} templateId={item.templateId} x={item.position[0]} z={item.position[1]} status={item.status} active={item.active} selected={selectedDevelopmentId===item.id} label={selectedDevelopmentId===item.id || hoveredDevelopment===item.id?`${assetTemplateById[item.templateId].name} · ${item.active?`${calculateDevelopmentDemand(item).toFixed(2)} ML/day`:"Paused"}`:undefined} onClick={()=>onSelectDevelopment?.(item.id)} onHover={active=>setHoveredDevelopment(active?item.id:null)}/>)}
-    {placingTemplateId && hoverPoint && <DevelopmentStructure templateId={placingTemplateId} x={hoverPoint[0]} z={hoverPoint[1]} ghost valid={canPlaceDevelopment(hoverPoint[0],hoverPoint[1],layout,developments)} onClick={()=>{if(canPlaceDevelopment(hoverPoint[0],hoverPoint[1],layout,developments))onPlace?.(hoverPoint);}}/>}
-    {placingTemplateId && <mesh position={[0,-.775,0]} rotation={[-Math.PI/2,0,0]} onClick={(event)=>{event.stopPropagation();const x=event.point.x,z=event.point.z;if(canPlaceDevelopment(x,z,layout,developments))onPlace?.([x,z]);}}><planeGeometry args={[13.2,9.3]}/><meshBasicMaterial transparent opacity={0} depthWrite={false}/></mesh>}
-    <ContactShadows position={[0,-1.04,0]} opacity={.32} scale={18} blur={2.8} far={6} />
+    {developments.map(item=><DevelopmentStructure key={item.id} templateId={item.templateId} x={item.position[0]*MODEL_SCALE} z={item.position[1]*MODEL_SCALE} status={item.status} active={item.active} selected={selectedDevelopmentId===item.id} label={selectedDevelopmentId===item.id || hoveredDevelopment===item.id?`${assetTemplateById[item.templateId].name} · ${item.active?`${calculateDevelopmentDemand(item).toFixed(2)} ML/day`:"Paused"}`:undefined} onClick={()=>onSelectDevelopment?.(item.id)} onHover={active=>setHoveredDevelopment(active?item.id:null)}/>)}
+    {placingTemplateId && hoverPoint && <DevelopmentStructure templateId={placingTemplateId} x={hoverPoint[0]*MODEL_SCALE} z={hoverPoint[1]*MODEL_SCALE} ghost valid={canPlaceDevelopment(hoverPoint[0],hoverPoint[1],layout,developments)} onClick={()=>{if(canPlaceDevelopment(hoverPoint[0],hoverPoint[1],layout,developments))onPlace?.(hoverPoint);}}/>}
+    {placingTemplateId && <mesh position={[0,-.775,0]} rotation={[-Math.PI/2,0,0]} onClick={(event)=>{event.stopPropagation();const x=event.point.x/MODEL_SCALE,z=event.point.z/MODEL_SCALE;if(canPlaceDevelopment(x,z,layout,developments))onPlace?.([x,z]);}}><planeGeometry args={[13.2*MODEL_SCALE,9.3*MODEL_SCALE]}/><meshBasicMaterial transparent opacity={0} depthWrite={false}/></mesh>}
+    <ContactShadows position={[0,-1.04,0]} opacity={.32} scale={22} blur={2.8} far={6} />
     <OrbitControls makeDefault enablePan={false} enableRotate={!placingTemplateId} enableDamping minZoom={30} maxZoom={92} minPolarAngle={.35} maxPolarAngle={1.28} target={[0,0,-.2]} />
   </>;
 }
@@ -326,10 +353,10 @@ export default function CityMaquette({ municipality, drought = 0, nrw = 28, sect
     return ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0,1,0),.775),hit)?[hit.x,hit.z]:null;
   };
   const drop=(clientX:number,clientY:number)=>{
-    const point=worldPoint(clientX,clientY);
+    const world=worldPoint(clientX,clientY); const point: [number,number] | null = world ? [world[0]/MODEL_SCALE,world[1]/MODEL_SCALE] : null;
     if(point && canPlaceDevelopment(point[0],point[1],layout,developments)) onPlace?.(point);
   };
-  return <div className={`maquette-wrap${placingTemplateId?" is-placing":""}`} ref={wrapper} onPointerMove={event=>{if(placingTemplateId)setHoverPoint(worldPoint(event.clientX,event.clientY));}} onPointerLeave={()=>setHoverPoint(null)} onDragOver={event=>{if(placingTemplateId){event.preventDefault();setHoverPoint(worldPoint(event.clientX,event.clientY));}}} onDrop={event=>{if(placingTemplateId){event.preventDefault();drop(event.clientX,event.clientY);}}}>
+  return <div className={`maquette-wrap${placingTemplateId?" is-placing":""}`} ref={wrapper} onPointerMove={event=>{if(placingTemplateId)setHoverPoint((point=>point?[point[0]/MODEL_SCALE,point[1]/MODEL_SCALE]:null)(worldPoint(event.clientX,event.clientY)));}} onPointerLeave={()=>setHoverPoint(null)} onDragOver={event=>{if(placingTemplateId){event.preventDefault();setHoverPoint((point=>point?[point[0]/MODEL_SCALE,point[1]/MODEL_SCALE]:null)(worldPoint(event.clientX,event.clientY)));}}} onDrop={event=>{if(placingTemplateId){event.preventDefault();drop(event.clientX,event.clientY);}}}>
     <Canvas orthographic shadows dpr={[1, 1.5]} camera={{ position: [10,10,12], zoom: 52 }} onCreated={state=>{camera.current=state.camera;}} aria-label={`Interactive low-poly water planning model for ${municipality}. ${placingTemplateId?"Click or drop on the terrain to place a development.":"Drag to rotate and scroll to zoom."} Current NRW assumption: ${nrw} percent. ${drought ? `${drought} percent supply reduction.` : "Baseline scenario."}`}>
       <Suspense fallback={null}><Model layout={layout} sectors={sectors} focusedSector={focusedSector} onSectorHover={onSectorHover} onSelectSector={onSelectSector} nrw={nrw} developments={developments} placingTemplateId={placingTemplateId} hoverPoint={hoverPoint} onPlace={onPlace} selectedDevelopmentId={selectedDevelopmentId} onSelectDevelopment={onSelectDevelopment} /></Suspense>
     </Canvas>

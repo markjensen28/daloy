@@ -226,25 +226,21 @@ export default function App() {
     try { localStorage.setItem("water-economics-appearance-v1", appearance); } catch { /* Appearance still applies for this session. */ }
   }, [appearance]);
   const handleDamDetailsToggle = () => {
-    if (!controlsOpen && !impactOpen && !reservoirDetailsOpen) {
+    if (!controlsOpen || !impactOpen) {
       setControlsOpen(true);
       setImpactOpen(true);
       setReservoirDetailsOpen(true);
       return;
     }
-    setReservoirDetailsOpen((open) => !open);
+    setControlsOpen(false);
+    setImpactOpen(false);
+    setReservoirDetailsOpen(false);
   };
   const scenario = scenarios.find((s) => s.id === scenarioId) || scenarios[0];
   const result = useMemo(() => simulate(scenario, scope), [scenario, scope]);
-  const baselineResult = useMemo(() => simulate(baselineScenario, scope), [scope]);
   const selected = pilots.filter((m) => scope === "combined" || m.id === scope),
     p = scenario.inputs[selected[0].id];
-  const scopeName = scope === "combined" ? "Combined MVP" : selected[0].name;
-  const protectedReserveVolume = result.results.reduce((total, item) => total + item.reserveVolume, 0);
-  const availableStorageBuffer = result.results.reduce((total, item) => total + Math.max(0, item.ending - item.reserveVolume), 0);
-  const blendedNrw = result.supply > 0 ? result.results.reduce((total, item) => total + item.supply * item.nrw, 0) / result.supply : 0;
-  const storageCoverDays = result.gap > 0 ? availableStorageBuffer / (result.gap / Math.max(.2, 1 - blendedNrw)) : 0;
-  const currentSectorShortfalls = sectorNames.map((name, index) => ({name, unmet: Math.max(0, result.demands[index] - result.allocations[index])})).sort((a,b) => b.unmet - a.unmet);
+  const scopeName = scope === "combined" ? "Provincial overview" : selected[0].name;
   const allocationShareTotal = p.allocationShares.reduce((sum, share) => sum + share, 0);
   const setAllocationShare = (index: number, requested: number) => {
     const value = Math.max(0, Math.min(100, requested));
@@ -264,6 +260,7 @@ export default function App() {
   const spatialMunicipality = scope === "combined" ? pilots[2] : selected[0];
   const spatialResult = simulate(scenario, spatialMunicipality.id);
   const spatialStorage = spatialResult.results[0];
+  const metricStorage = scope === "combined" ? result : spatialResult;
   const spatialDevelopments = (scenario.developments || []).filter(item=>item.municipalityId===spatialMunicipality.id);
   const spatialInput = scenario.inputs[spatialMunicipality.id];
   const nrwBaseline = baselineScenario.inputs[spatialMunicipality.id].nrw;
@@ -286,7 +283,7 @@ export default function App() {
     ["Baseline demand", `${number(baselineDemand)} ML/day`, "ESTIMATED"],
     ["Supply capacity", `${number(spatialResult.supply)} ML/day`, "SIMULATED · GROSS"],
     ["Allocable water", `${number(spatialResult.allocable)} ML/day`, "AFTER LOSSES & RESERVE"],
-    ["Unmet demand", `${number(spatialResult.shortage)} ML/day`, "LIVE SIMULATION"],
+    ["Unmet demand", `${number(spatialResult.shortage)} ML/day`, "CURRENT SCENARIO"],
   ] as const;
   const facilityInventory = [
     ["Households / service connections", `${number(spatialMunicipality.households)}`, "DEMO INPUT"],
@@ -378,6 +375,9 @@ export default function App() {
     window.setTimeout(() => setNotice(""), 4000);
   };
   const reset = () => {
+    const original = scenario.id === "drought" ? droughtScenario : baseline(scenario.id, scenario.name);
+    const hasChanges = JSON.stringify(scenario.inputs) !== JSON.stringify(original.inputs) || JSON.stringify(scenario.developments || []) !== JSON.stringify(original.developments || []);
+    if (hasChanges && !window.confirm("Reset this scenario to its demonstration baseline? Your current changes will be cleared.")) return;
     setScenarios((list) =>
       list.map((s) => (s.id === scenario.id ? baseline(s.id, s.name) : s)),
     );
@@ -471,8 +471,8 @@ export default function App() {
             <Droplets size={25} />
           </span>
           <span>
-            water<span className="brand-light">economics</span>
-            <small>Samar planning studio</small>
+            DALOY
+            <small>- Economy Decision Sandbox</small>
           </span>
         </a>
         <div className="header-end">
@@ -538,7 +538,7 @@ export default function App() {
         <div className="scopebar">
           <div className="context-cluster">
             <div className="scope-tabs" aria-label="Municipality scope">
-              {[{ id: "combined", name: "Combined MVP" }, ...pilots].map((m) => (
+              {[{ id: "combined", name: "Provincial overview" }, ...pilots].map((m) => (
                 <button
                   key={m.id}
                   className={scope === m.id ? "selected" : ""}
@@ -548,6 +548,7 @@ export default function App() {
                 </button>
               ))}
             </div>
+            <p className="scope-explanation">{scope === "combined" ? "3 independent LGU systems | no inter-LGU transfers" : "Independent LGU | no inter-LGU transfers"}</p>
             {page === "Simulation" && <div className="simulation-view-tabs" role="tablist" aria-label="Simulation view">
               {["Reservoir", "Water flows"].map((item) => <button key={item} role="tab" aria-selected={view === item} className={view === item ? "active" : ""} onClick={() => { setView(item); setReservoirDetailsOpen(false); }}>
                 {item === "Water flows" ? <GitBranch size={14}/> : <Layers3 size={14}/>}
@@ -573,7 +574,8 @@ export default function App() {
             </div>
             {page === "Simulation" && <div className="context-actions">
               <button className="context-reset" onClick={reset} aria-label="Reset simulation" title="Reset simulation"><RotateCcw size={15}/></button>
-              <button className="context-save" onClick={openSave}><Save size={15}/>Save</button>
+              <button className="context-compare" onClick={() => { setCompareMode("Scenarios"); setPage("Scenarios"); }}><GitBranch size={15}/>Compare</button>
+              <button className="context-save" onClick={openSave}><Save size={15}/>Save scenario</button>
             </div>}
           </div>
         </div>
@@ -592,7 +594,7 @@ export default function App() {
                   </button>
                 </div>
                 <div className="control-tabs">
-                  {[["Sources", "Sources"], ["Allocation", "Demand"], ["Equity", "Policies"]].map(([t, label]) => (
+                  {[["Sources", "Sources"], ["Allocation", "Demand & Allocation"], ["Equity", "Policies"]].map(([t, label]) => (
                     <button
                       key={t}
                       className={controlTab === t ? "selected" : ""}
@@ -615,7 +617,7 @@ export default function App() {
                         <div className="mini-heading">
                           <Waves size={16} />
                           <h3>Water supply</h3>
-                          <span className="tag">Live</span>
+                          <span className="tag">Demo assumption</span>
                         </div>
                         <Slider
                           label="Source output"
@@ -763,7 +765,7 @@ export default function App() {
                         </div>
                       ))}
                       <div className="control-section allocation-outcome">
-                        <div className="mini-heading"><BarChart3 size={16} /><h3>Live allocation outcome</h3></div>
+                        <div className="mini-heading"><BarChart3 size={16} /><h3>Allocation outcome</h3></div>
                         <p>{mixed("allocationShares") ? "Channel settings vary by LGU." : "Increasing one channel automatically rebalances the other three. Water unused by a fully met channel flows to channels still needing water."}</p>
                         <div><span>Channel plan</span><strong>{number(allocationShareTotal)} <small>%</small></strong></div>
                         <div><span>Available for distribution</span><strong>{number(result.allocable)} <small>ML/day</small></strong></div>
@@ -831,9 +833,16 @@ export default function App() {
                 <div className="model-heading">
                   <div>
                     <span className="status-dot" />{" "}
-                    <h2>{scopeName} water system</h2>
+                    <h2>{scopeName}{scope === "combined" ? " · 3 independent systems" : " water system"}</h2>
                     <span className="subtle-badge">1-day simulation</span>
+                    <span className="representative-label">Visualization: {spatialMunicipality.name}{scope === "combined" ? " only" : ""}</span>
                   </div>
+                </div>
+                <div className="decision-metrics" aria-label="Current scenario water balance">
+                  <div><span>Source supply</span><strong>{number(result.supply)} <small>ML/day</small></strong><em>{scope === "combined" ? "Independent systems summed" : "Current inflow"}</em></div>
+                  <div><span>Water demand</span><strong>{number(result.demand)} <small>ML/day</small></strong><em>Required in this scenario</em></div>
+                  <div className={result.gap > 0 ? "warning" : ""}><span>Supply gap</span><strong>{result.gap > 0 ? "−" : ""}{number(result.gap)} <small>ML/day</small></strong><em>Before stored water</em></div>
+                  <div><span>Closing storage</span><strong>{number(metricStorage.ending)} <small>/ {number(metricStorage.capacity)} ML</small></strong><em>{Math.round(metricStorage.capacity ? metricStorage.ending / metricStorage.capacity * 100 : 0)}% of capacity</em></div>
                 </div>
                 <div className="model-stage">
                   {view === "Reservoir" ? (
@@ -847,55 +856,14 @@ export default function App() {
                         }
                       >
                         <Reservoir
-                          level={result.ending / result.capacity}
-                          protectedLevel={result.capacity > 0 ? protectedReserveVolume / result.capacity : 0}
+                          level={spatialStorage.ending / spatialStorage.capacity}
+                          protectedLevel={spatialStorage.capacity > 0 ? spatialStorage.reserveVolume / spatialStorage.capacity : 0}
                           paused={false}
                           reset={0}
                           showDetails={reservoirDetailsOpen}
                           onToggleDetails={handleDamDetailsToggle}
                         />
                       </Suspense>
-                      {reservoirDetailsOpen && <>
-                        <div className="metrics-ribbon details-pop">
-                          <div>
-                            <span><ArrowDownRight size={13} /> Source inflow</span>
-                            <strong>{number(result.supply)}<small>ML/day</small></strong>
-                            <em>{percentChange(result.supply, baselineResult.supply)}</em>
-                          </div>
-                          <div>
-                            <span><ArrowUpRight size={13} /> Water demand</span>
-                            <strong>{number(result.demand)}<small>ML/day</small></strong>
-                            <em>{percentChange(result.demand, baselineResult.demand)}</em>
-                          </div>
-                          <div className="amber">
-                            <span><Activity size={13} /> Inflow deficit</span>
-                            <strong>{number(result.gap)}<small>ML/day</small></strong>
-                            <em>{result.demand > 0 ? `${number(result.gap / result.demand * 100)}% of demand` : "No demand"}</em>
-                          </div>
-                          <div className="storage-metric">
-                            <span><Droplets size={13} /> Closing storage</span>
-                            <strong>{number(result.ending)}<small> / {number(result.capacity)} ML</small></strong>
-                            <i><b style={{ width: `${Math.max(0, Math.min(100, (result.ending / result.capacity) * 100))}%` }} /></i>
-                            <em>{Math.round((result.ending / result.capacity) * 100)}% full · {number(Math.max(0, result.ending - protectedReserveVolume))} ML above reserve</em>
-                          </div>
-                        </div>
-                        <div className={`balance-message details-pop ${result.shortage > 0 ? "warning" : ""}`}>
-                          <Info size={16} />
-                          <p>
-                            {result.shortage > 0 ? (
-                              <><strong>{number(result.shortage)} ML/day of demand is unmet.</strong>{" "}{currentSectorShortfalls[0]?.unmet > .05 ? `${currentSectorShortfalls[0].name} has the largest shortfall at ${number(currentSectorShortfalls[0].unmet)} ML/day.` : "Try increasing supply or revisiting the distribution channels."}</>
-                            ) : result.gap > 0 ? (
-                              <><strong>Stored water bridges the {number(result.gap)} ML/day inflow deficit.</strong>{" "}{availableStorageBuffer > .05 ? `Water above the protected reserve lasts about ${number(storageCoverDays)} days at this rate.` : "Storage is at its protected reserve."}</>
-                            ) : (
-                              <><strong>Source inflow covers current demand.</strong>{" "}The remaining water can replenish reservoir storage.</>
-                            )}
-                          </p>
-                          <button className="compare-action" onClick={() => { setCompareMode("Scenarios"); setPage("Scenarios"); }}>Compare</button>
-                          <button className="outcome-action" onClick={() => { setControlTab("Allocation"); setControlsOpen(true); }}>
-                            Adjust distribution <ArrowRight size={17} />
-                          </button>
-                        </div>
-                      </>}
                     </>
                   ) : (
                     <div className="large-flow">
@@ -914,7 +882,7 @@ export default function App() {
                     {impactOpen ? <ChevronRight size={17} /> : <BarChart3 size={17} />}
                   </button>
                   <h2>{impactOpen ? "Who receives water" : "View impact"}</h2>
-                  {impactOpen && <span className="tag">Live</span>}
+                  {impactOpen && <span className="tag">Demo result</span>}
                 </div>
                 <div className="inspector-body">
                   <div className="inspector-subheading">
@@ -928,8 +896,9 @@ export default function App() {
                       return (
                         <button
                           key={name}
-                          className={`sector-row ${sector === i && sectorDetailOpen ? "active" : ""} ${unmet > .05 ? "has-unmet" : "fully-met"}`}
+                          className={`sector-row ${sector === i && sectorDetailOpen ? "active" : ""} ${unmet > .05 ? "has-unmet" : "fully-met"} ${result.coverage[i] < .5 ? "critical" : result.coverage[i] < .999 ? "warning" : "met"}`}
                           aria-label={`${name}: ${number(result.allocations[i])} of ${number(result.demands[i])} ML/day supplied${unmet > .05 ? `, ${number(unmet)} ML/day unmet` : ", fully met"}`}
+                          style={{"--status": result.coverage[i] >= .999 ? "var(--status-met)" : result.coverage[i] >= .5 ? "var(--status-warning)" : "var(--status-critical)"} as React.CSSProperties}
                           aria-expanded={sector === i && sectorDetailOpen}
                           onClick={() => {
                             if (sector === i) setSectorDetailOpen((open) => !open);
@@ -953,7 +922,7 @@ export default function App() {
                             <i
                               style={{
                                 width: `${result.coverage[i] * 100}%`,
-                                background: sectorColors[i],
+                                background: coverageColor(result.coverage[i], sectorColors[i]),
                               }}
                             />
                           </div>
@@ -978,15 +947,14 @@ export default function App() {
                         : "unused channel water is redistributed to sectors still needing water."}
                     </p>
                   </div>}
-                  <section className="impact-summary" aria-label="People behind the numbers">
-                    <div className="impact-summary-heading"><BarChart3 size={14}/><strong>People behind the numbers</strong></div>
+                  <section className="impact-summary" aria-label="People and affordability">
+                    <div className="impact-summary-heading"><BarChart3 size={14}/><strong>People and affordability</strong></div>
                     <div className="impact-stat-grid">
-                      <div><strong>{number(result.affected)}</strong><span>Households at risk*</span></div>
-                      <div><strong>{number(result.burden)}%</strong><span>Water burden</span></div>
+                      <div><strong>{number(result.affected)}</strong><span>Households with unmet needs</span></div>
+                      <div><strong>{number(result.burden)}%</strong><span>Water affordability burden</span></div>
                       <div><strong>{number(result.assisted)}</strong><span>Households assisted</span></div>
                     </div>
                     <p>*Equivalent household estimate from unmet household demand; not identified households.</p>
-                    <div className="impact-agriculture"><span>Agriculture &amp; fisheries unmet</span><strong>{number(Math.max(0, result.demands[1] - result.allocations[1]))} ML/day</strong></div>
                     <button className="text-button" onClick={() => setPage("Methodology")}>
                       How are these calculated?<ArrowUpRight size={13}/>
                     </button>
@@ -994,6 +962,7 @@ export default function App() {
                 </div>
               </aside>
             </div>
+            <p className="simulation-disclaimer"><Info size={14}/> Illustrative demonstration data · Single-day water balance · No live utility connection <button className="text-button" onClick={() => setPage("Methodology")}>View method</button></p>
             <div className="supporting-grid">
               <section className="map-card">
                 <SectionHeading
@@ -1070,7 +1039,7 @@ export default function App() {
         )}
         {page === "Simulation" && view === "Reservoir" && (
           <section id="spatial-section" className="spatial-section" aria-label="Samar spatial context">
-            <div className="explore-status-strip" aria-label={`${spatialMunicipality.name} live planning summary`}>
+            <div className="explore-status-strip" aria-label={`${spatialMunicipality.name} current scenario summary`}>
               <div className="explore-focus"><span>Spatial focus</span><strong>{spatialMunicipality.name}</strong><small>{scope === "combined" ? "REPRESENTATIVE PILOT" : "SELECTED PILOT"}</small></div>
               <div><span>Demand covered</span><strong>{Math.round(spatialCoverage * 100)}%</strong><small>SIMULATED</small></div>
               <div><span>Daily shortfall</span><strong>{number(spatialResult.shortage)} <small>ML/day</small></strong><small>SIMULATED</small></div>
@@ -1097,7 +1066,7 @@ export default function App() {
                   <div>
                     <h2>{spatialMunicipality.name}</h2>
                     <p>3D planning view <span>· illustrative model</span></p>
-                    {exploreLayout === "planning-expanded" && <div className="planning-live-stats" aria-label={`${spatialMunicipality.name} live water status`}>
+                    {exploreLayout === "planning-expanded" && <div className="planning-live-stats" aria-label={`${spatialMunicipality.name} current scenario water status`}>
                       <span>Water stress <b className={`stress-${waterStress.toLowerCase()}`}>{waterStress}</b></span>
                       <span>NRW <b>{number(spatialInput.nrw)}%</b></span>
                       <span>Allocable water <b>{number(spatialResult.allocable)} ML/day</b></span>
@@ -1142,7 +1111,7 @@ export default function App() {
               </section>}
 
               {exploreLayout === "map-expanded" && <aside className="explore-detail-rail municipal-profile">
-                <header className="municipal-profile-head"><span>DEMOGRAPHICS / MAP</span><h3>{spatialMunicipality.name}</h3><p>Municipal profile · shared live simulation state</p></header>
+                <header className="municipal-profile-head"><span>DEMOGRAPHICS / MAP</span><h3>{spatialMunicipality.name}</h3><p>Municipal profile · shared scenario state</p></header>
                 <div className="profile-statuses" aria-label="Municipal service conditions">
                   <span className={`profile-status stress-${waterStress.toLowerCase()}`}>Water stress <b>{waterStress}</b></span>
                   <span className={`profile-status affordability-${affordability.toLowerCase()}`}>Affordability <b>{affordability}</b></span>
@@ -1197,12 +1166,12 @@ export default function App() {
                   <div><strong>{nrwPercentagePointChange >= 0 ? "−" : "+"}{number(Math.abs(nrwPercentagePointChange))} pp</strong><span>NRW change from demo baseline</span></div>
                   <div><strong>{spatialInput.price > 0 ? `₱${number(nrwValueEstimate)}/day` : "Not estimated"}</strong><span>Potential value of added deliveries · ESTIMATED</span></div>
                 </div>
-                <p className="nrw-method-note">Source loss uses simulated inflow plus opening storage × NRW. Allocable water uses the live reservoir, protected reserve, and loss model. Potential value uses only the additional simulated allocation at the current illustrative tariff of {money(spatialInput.price)}/m³; it is not a revenue forecast.</p>
+                <p className="nrw-method-note">Source loss uses simulated inflow plus opening storage × NRW. Allocable water uses the simulated reservoir, protected reserve, and loss model. Potential value uses only the additional simulated allocation at the current illustrative tariff of {money(spatialInput.price)}/m³; it is not a revenue forecast.</p>
               </div>}
             </section>}
             {exploreLayout === "map-expanded" && <section className={`water-balance-panel ${waterBalanceOpen ? "expanded" : ""}`} aria-labelledby="water-balance-title">
               <button className="water-balance-toggle" type="button" aria-expanded={waterBalanceOpen} onClick={() => setWaterBalanceOpen((open) => !open)}>
-                <span><small>LIVE MUNICIPALITY MODEL</small><strong id="water-balance-title">Water balance analysis</strong></span>
+                <span><small>CURRENT SCENARIO MODEL</small><strong id="water-balance-title">Water balance analysis</strong></span>
                 <span className="water-balance-summary">
                   <span>Required <b>{number(spatialResult.demand)} ML/day</b></span>
                   <span>Unmet <b>{number(spatialResult.shortage)} ML/day</b></span>
@@ -1540,7 +1509,7 @@ export default function App() {
                 ],
                 [
                   "Map and future modules",
-                  "Samar boundaries come from the 2011 Philippines JSON Maps dataset (faeldon, MIT license). They provide geographic context and should be replaced with current verified GIS data for operational use. AI interpretation and forecasting are future modules; no inference or predictions run in this app.",
+                  "Samar boundaries come from the 2011 Philippines JSON Maps dataset (faeldon, MIT license). They provide geographic context and should be replaced with current verified GIS data for operational use. Gemma 4 E4B may interpret calculated results only; it does not calculate balances, forecast demand, or decide allocations. Forecasting is a future module.",
                 ],
               ].map(([title, text]) => (
                 <article key={title}>
@@ -1586,11 +1555,11 @@ export default function App() {
       </main>
       {page === "Simulation" && <aside className={`daloy-assistant ${daloyOpen ? "open" : ""}`} aria-label="DALOY scenario assistant">
         {daloyOpen && <section className="daloy-panel">
-          <header><span><Sparkles size={15}/> DALOY <small>LIVE SCENARIO READING</small></span><button className="icon-button" aria-label="Close DALOY" onClick={() => setDaloyOpen(false)}><X size={17}/></button></header>
+          <header><span><Activity size={15}/> DALOY <small>RULE-BASED SUMMARY</small></span><button className="icon-button" aria-label="Close DALOY" onClick={() => setDaloyOpen(false)}><X size={17}/></button></header>
           <p className="daloy-prompt">Ask about {spatialMunicipality.name}</p>
           <div className="daloy-questions">{daloyQuestions.map((question) => <button key={question} className={daloyQuestion === question ? "selected" : ""} onClick={() => selectDaloyQuestion(question)}>{question}<ArrowRight size={13}/></button>)}</div>
           {daloyQuestion && <div className="daloy-answer" aria-live="polite">
-            <span><Sparkles size={13}/> {daloyQuestion}</span>
+            <span><Activity size={13}/> {daloyQuestion}</span>
             {daloyQuestion === daloyQuestions[0] && <>
               <strong>{largestUnmet ? `The largest demand shortfall is in ${largestUnmet.name.toLowerCase()}.` : "No sector has unmet demand in the current scenario."}</strong>
               {largestUnmet && <dl><div><dt>Required</dt><dd>{number(largestUnmet.value)} ML/day</dd></div><div><dt>Allocated</dt><dd>{number(largestUnmet.allocation)} ML/day</dd></div><div><dt>Unmet</dt><dd>{number(largestUnmet.unmet)} ML/day</dd></div><div><dt>Covered</dt><dd>{Math.round(largestUnmet.coverage*100)}%</dd></div></dl>}
@@ -1604,7 +1573,7 @@ export default function App() {
             <small>Computed directly from the current scenario inputs; no extra AI estimate.</small>
           </div>}
         </section>}
-        <button className="daloy-launcher" onClick={() => setDaloyOpen((open) => !open)} aria-expanded={daloyOpen} aria-label={daloyOpen ? "Close scenario interpretation" : "Interpret scenario with DALOY"}><Sparkles size={16}/>{daloyOpen ? "Close interpretation" : "Interpret scenario"}</button>
+        <button className="daloy-launcher" onClick={() => setDaloyOpen((open) => !open)} aria-expanded={daloyOpen} aria-label={daloyOpen ? "Close scenario interpretation" : "Open current scenario summary"}><Activity size={16}/>{daloyOpen ? "Close summary" : "Scenario summary"}</button>
       </aside>}
       {notice && (
         <div className="toast" role="status">
